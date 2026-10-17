@@ -4,6 +4,9 @@ private/
 *.env
 .env*
 
+# live Firestore rules contain the commissioner UID; the public copy is firestore.rules.example
+firestore.rules
+
 # local-only agent instructions, setup guide and working notes — never public
 CLAUDE.md
 .claude/
