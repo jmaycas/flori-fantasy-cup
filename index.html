@@ -12,48 +12,99 @@
   <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="wrap"><a class="wordmark" href="./">FLORI Fantasy Cup</a></div>
-  </header>
+  <main id="main" class="wrap">
+    <div class="page-head">
+      <p class="kicker" id="kicker"></p>
+      <h1 id="headline">FLORI Fantasy Cup</h1>
+    </div>
 
-  <main class="wrap">
-    <h1 id="headline">FLORI Fantasy Cup</h1>
-    <p class="lede" id="lede">The arena is being built. Draft Night opens here before tip-off.</p>
-    <ul class="franchises" id="franchises" aria-label="Franchises"></ul>
+    <section aria-labelledby="h-franchises">
+      <h2 id="h-franchises" class="visually-hidden">Franchises</h2>
+      <ul class="franchises" id="franchises"></ul>
+    </section>
+
+    <section class="section grid-2">
+      <div class="hero" id="draft-hero"></div>
+      <div>
+        <div class="card" id="standings">
+          <h2>Standings</h2>
+          <div id="standings-body"></div>
+        </div>
+        <div class="card" id="debrief">
+          <h2>Pablete ESPN ☕</h2>
+          <div id="debrief-body"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="wrap" id="footer-text">FLORI Fantasy Cup</div>
-  </footer>
-
   <script type="module">
-    const res = await fetch("config/league.json");
-    const cfg = await res.json();
-    const { league, teams, champions, crown_emoji } = cfg;
+    import { mountChrome, el, crownsOf, titlesOf, teamChip, boxTable } from "./js/ui.js";
 
-    document.getElementById("headline").textContent = `${league.name} ${league.season}`;
-    const draft = new Date(league.draft_date + "T12:00:00");
-    const when = draft.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-    document.getElementById("lede").textContent =
-      `The arena is being built. Draft Night opens here on ${when}: ${league.n_teams} franchises, ${league.rounds} rounds, snake order.`;
-    document.getElementById("footer-text").textContent = `${league.name} · ${league.season} · ${league.platform} · ${league.scoring_type}`;
+    const cfg = await mountChrome("home");
+    const { league, teams } = cfg;
 
-    const crowns = id => crown_emoji.repeat(champions.filter(c => c.team_id === id).length);
+    document.getElementById("kicker").textContent = `${league.season} season · ${league.platform} · ${league.scoring_type}`;
+    document.getElementById("headline").textContent = `The ${league.name}`;
+
+    // Franchise row: 8 logos with computed crowns, in draft order.
     const list = document.getElementById("franchises");
     for (const t of [...teams].sort((a, b) => a.draft_slot - b.draft_slot)) {
-      const li = document.createElement("li");
-      li.className = "franchise";
-      const img = document.createElement("img");
-      img.src = t.logo; img.alt = ""; img.width = 64; img.height = 64;
-      const name = document.createElement("div");
-      name.className = "name"; name.textContent = t.name;
-      const cr = document.createElement("div");
-      cr.className = "crowns";
-      const n = crowns(t.id);
-      cr.textContent = n;
-      if (n) cr.setAttribute("aria-label", `${n.length / crown_emoji.length} title(s)`);
-      li.append(img, name, cr);
-      list.append(li);
+      const n = titlesOf(cfg, t.id);
+      list.append(el("li", { class: "franchise", style: { "--team": t.color } },
+        el("img", { src: t.logo, alt: "", width: 72, height: 72 }),
+        el("div", { class: "name" }, t.name),
+        el("div", { class: "crowns", role: n ? "img" : null, "aria-label": n ? `${n} title${n > 1 ? "s" : ""}` : null }, crownsOf(cfg, t.id)),
+        el("div", { class: "slot" }, `Pick ${t.draft_slot}`, el("br"), `Since ${t.founded}`)));
+    }
+
+    // Draft Night callout.
+    const draftDay = new Date(league.draft_date + "T00:00:00");
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const days = Math.round((draftDay - today) / 86400000);
+    const dayLabel = draftDay.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    const hero = document.getElementById("draft-hero");
+    if (days >= 0) {
+      hero.append(
+        el("p", { class: "when" }, days === 0 ? "Tonight" : days === 1 ? `Tomorrow · ${dayLabel}` : dayLabel),
+        el("h2", {}, "Draft Night"),
+        el("p", {}, `${league.n_teams} franchises, ${league.rounds} rounds, snake order, ${league.pick_timer_seconds / 60} minutes on the clock when it runs. Follow every pick live from your phone — no login needed.`),
+        el("a", { class: "btn", href: "draft.html" }, "Open the draft room"));
+    } else {
+      hero.append(
+        el("p", { class: "when" }, `${league.season} season`),
+        el("h2", {}, "The season is on"),
+        el("p", {}, "The draft is in the books. Rosters live on the Teams page."),
+        el("a", { class: "btn", href: "teams.html" }, "See the rosters"));
+    }
+
+    // Standings and latest debrief (data/pablete.json appears once the daily ESPN sync runs).
+    const sBody = document.getElementById("standings-body");
+    const dBody = document.getElementById("debrief-body");
+    let pablete = null;
+    try {
+      const r = await fetch("data/pablete.json", { cache: "no-cache" });
+      if (r.ok) pablete = await r.json();
+    } catch { /* not published yet */ }
+
+    if (pablete?.season?.length) {
+      sBody.append(boxTable({
+        caption: "Standings by total points",
+        sortKey: "total", sortDir: "desc",
+        rows: pablete.season,
+        columns: [
+          { key: "team", label: "Team", value: r => teams.find(t => t.id === r.team_id).name, render: r => teamChip(cfg, r.team_id) },
+          { key: "total", label: "Points", num: true, value: r => r.total_points, render: r => r.total_points.toLocaleString("en-GB") },
+        ],
+      }));
+      dBody.append(
+        el("p", {}, pablete.headline || `Debrief for ${pablete.date}`),
+        el("a", { class: "btn secondary", href: "pablete.html" }, "Read the debrief"));
+    } else {
+      sBody.append(el("p", { class: "muted" }, "Standings start after the first night of games."));
+      dBody.append(
+        el("p", { class: "muted" }, "The morning debrief starts after the first night of games."),
+        el("a", { class: "btn secondary", href: "pablete.html" }, "About the debrief"));
     }
   </script>
 </body>

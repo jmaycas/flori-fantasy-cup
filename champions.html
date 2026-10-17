@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Hall of Champions · FLORI Fantasy Cup</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Big+Shoulders+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <main id="main" class="wrap">
+    <div class="page-head">
+      <p class="kicker">Hanging in the rafters</p>
+      <h1>Hall of Champions</h1>
+    </div>
+
+    <section class="rafters" aria-label="Rafters">
+      <div class="hang">
+        <a class="jersey-link rafter-jersey" href="rumbita.html" id="jersey"></a>
+      </div>
+      <p class="rafter-caption" id="jersey-caption"></p>
+      <div class="rafter-row" id="banners"></div>
+    </section>
+
+    <section class="section" aria-labelledby="h-crowns">
+      <h2 id="h-crowns">Crowns</h2>
+      <div id="crown-table"></div>
+      <p class="muted" id="crown-note"></p>
+    </section>
+  </main>
+
+  <script type="module">
+    import { mountChrome, el, bannerSVG, jerseySVG, teamChip, titlesOf, crownsOf } from "./js/ui.js";
+
+    const cfg = await mountChrome("champions");
+    const { league, teams, champions, emeritus } = cfg;
+
+    // Retired jersey above the banners.
+    const jersey = document.getElementById("jersey");
+    jersey.append(el("div", { class: "jersey" }, jerseySVG(cfg)));
+    jersey.setAttribute("aria-label", `${emeritus.name}, ${emeritus.title}`);
+    const cap = document.getElementById("jersey-caption");
+    cap.append(el("a", { href: "rumbita.html" }, emeritus.name), ` · ${emeritus.title}`);
+
+    // Banners: one per title, oldest left, plus the open slot for the current season.
+    const seasonKey = s => parseInt(s.slice(0, 4), 10);
+    const titles = [...champions].sort((a, b) => seasonKey(a.season) - seasonKey(b.season));
+    const banners = document.getElementById("banners");
+    for (const c of titles) {
+      banners.append(el("div", { class: "hang" }, el("div", { class: "banner" }, bannerSVG(cfg, { season: c.season, teamId: c.team_id }))));
+    }
+    if (!champions.some(c => c.season === league.season)) {
+      banners.append(el("div", { class: "hang" }, el("div", { class: "banner empty" }, bannerSVG(cfg, { season: league.season, teamId: null }))));
+    }
+
+    // Crown table: seasons played counted from the founding season through the last
+    // completed season (the latest season with a champion).
+    const lastDone = Math.max(...champions.map(c => seasonKey(c.season)));
+    const lastDoneLabel = titles[titles.length - 1].season;
+    const rows = teams.map(t => ({
+      id: t.id, name: t.name, founded: t.founded,
+      titles: titlesOf(cfg, t.id),
+      seasons: Math.max(0, lastDone - seasonKey(t.founded) + 1),
+    }));
+
+    const table = el("table", { class: "box-table" },
+      el("caption", { class: "visually-hidden" }, "Titles per franchise"),
+      el("thead", {}, el("tr", {},
+        el("th", { scope: "col" }, "Franchise"),
+        el("th", { scope: "col" }, "Crowns"),
+        el("th", { scope: "col", class: "num" }, "Titles"),
+        el("th", { scope: "col" }, "Founded"),
+        el("th", { scope: "col", class: "num" }, "Seasons played"))),
+      el("tbody", {}, rows
+        .sort((a, b) => b.titles - a.titles || a.founded.localeCompare(b.founded) || a.name.localeCompare(b.name))
+        .map(r => el("tr", {},
+          el("td", {}, teamChip(cfg, r.id, { crowns: false })),
+          el("td", { class: "crowns-cell" }, crownsOf(cfg, r.id) || el("span", { class: "muted" }, "—")),
+          el("td", { class: "num" }, r.titles),
+          el("td", {}, r.founded),
+          el("td", { class: "num" }, r.seasons)))));
+    document.getElementById("crown-table").append(el("div", { class: "table-wrap" }, table));
+    document.getElementById("crown-note").textContent = `Seasons played through ${lastDoneLabel}.`;
+  </script>
+</body>
+</html>

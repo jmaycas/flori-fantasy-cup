@@ -12,11 +12,7 @@
   <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="wrap"><a class="wordmark" href="./">FLORI Fantasy Cup</a></div>
-  </header>
-
-  <main class="wrap">
+  <main id="main" class="wrap">
     <h1>Commissioner setup</h1>
     <p class="lede">Checks the Firebase connection, shows your user ID for the Firestore rules, and tests a write to the rehearsal room.</p>
 
@@ -41,12 +37,10 @@
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="wrap">FLORI Fantasy Cup</div>
-  </footer>
-
   <script type="module">
     import { firebaseConfig, FIREBASE_SDK } from "./js/firebase-config.js";
+    import { mountChrome } from "./js/ui.js";
+    await mountChrome(null);
     const $ = id => document.getElementById(id);
     const say = (id, text, cls) => { const el = $(id); el.textContent = text; el.className = cls || ""; };
 

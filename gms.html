@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>General Managers · FLORI Fantasy Cup</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Big+Shoulders+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <main id="main" class="wrap">
+    <div class="page-head">
+      <p class="kicker">Front offices</p>
+      <h1>General Managers</h1>
+      <p class="lede">The people behind the eight franchises. League members only.</p>
+    </div>
+    <div id="content"></div>
+  </main>
+
+  <script type="module">
+    import { mountChrome, el, teamChip, passwordGate } from "./js/ui.js";
+
+    const cfg = await mountChrome("gms");
+    const content = document.getElementById("content");
+    const SESSION_KEY = "flori.gms.key";
+
+    const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+
+    async function deriveKey(password, salt, iterations) {
+      const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+      return crypto.subtle.deriveKey(
+        { name: "PBKDF2", hash: "SHA-256", salt, iterations },
+        base, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
+    }
+
+    async function decrypt(key, enc) {
+      const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(enc.iv) }, key, b64(enc.ciphertext));
+      return JSON.parse(new TextDecoder().decode(plain));
+    }
+
+    function readSession() {
+      try { return sessionStorage.getItem(SESSION_KEY); } catch { return null; }
+    }
+    function writeSession(v) {
+      try { sessionStorage.setItem(SESSION_KEY, v); } catch { /* private mode: ask again next time */ }
+    }
+
+    function card(team, gm) {
+      const photo = gm?.photo
+        ? el("img", { class: "photo", src: gm.photo, alt: gm.gm_name ? `Photo of ${gm.gm_name}` : `GM of ${team.name}` })
+        : el("div", { class: "placeholder" }, el("img", { src: team.logo, alt: "" }), "Photo coming");
+      const name = gm?.gm_name || "General Manager";
+      return el("article", { class: "gm-card", style: { "--team": team.color } },
+        el("div", { class: "gm-photo" }, photo),
+        el("div", { class: "gm-body" },
+          el("h2", { class: "gm-name" }, name),
+          gm?.nickname ? el("div", { class: "gm-nick" }, `“${gm.nickname}”`) : null,
+          teamChip(cfg, team.id),
+          el("div", { class: "gm-meta" }, `Franchise since ${team.founded}`),
+          gm?.bio ? el("div", { class: "gm-bio" }, gm.bio) : el("div", { class: "gm-bio empty" }, "Bio coming soon.")));
+    }
+
+    function render(data) {
+      const byTeam = Object.fromEntries((data.gms || []).map(g => [g.team_id, g]));
+      const teams = [...cfg.teams].sort((a, b) => a.draft_slot - b.draft_slot);
+      content.replaceChildren(el("div", { class: "gm-grid" }, teams.map(t => card(t, byTeam[t.id]))));
+    }
+
+    let enc = null;
+    try {
+      const r = await fetch("assets/gms.enc.json", { cache: "no-cache" });
+      if (r.ok) enc = await r.json();
+    } catch { /* not published */ }
+
+    if (!enc) {
+      content.append(el("div", { class: "card empty-state" },
+        el("strong", {}, "Bios coming soon"),
+        "The commissioner hasn't published the GM bios yet."));
+    } else {
+      let shown = false;
+      const saved = readSession();
+      if (saved) {
+        try {
+          const key = await crypto.subtle.importKey("raw", b64(saved), "AES-GCM", true, ["decrypt"]);
+          render(await decrypt(key, enc));
+          shown = true;
+        } catch { /* stale key from an older file: ask again */ }
+      }
+      if (!shown) {
+        content.append(el("div", { class: "card empty-state" },
+          el("strong", {}, "Members only"),
+          "Enter the league password to see the bios."));
+        await passwordGate({
+          title: "League members only",
+          message: "The General Managers' bios are for the eight GMs. Enter the league password.",
+          check: async pw => {
+            const key = await deriveKey(pw, b64(enc.salt), enc.iterations);
+            const data = await decrypt(key, enc);
+            writeSession(toB64(await crypto.subtle.exportKey("raw", key)));
+            render(data);
+            return true;
+          },
+        });
+      }
+    }
+  </script>
+</body>
+</html>

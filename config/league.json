@@ -23,14 +23,14 @@
   },
 
   "teams": [
-    {"id": "malakito", "name": "Malakito de Memphis", "draft_slot": 1, "founded": "2025-26", "gm": null, "logo": "assets/logos/malakito.svg"},
-    {"id": "panzas",   "name": "CB Panzas",           "draft_slot": 2, "founded": "2023-24", "gm": null, "logo": "assets/logos/cbpanzas.svg"},
-    {"id": "franche",  "name": "Franche",             "draft_slot": 3, "founded": "2023-24", "gm": null, "logo": "assets/logos/franche.svg"},
-    {"id": "lotus",    "name": "Black Lotus",         "draft_slot": 4, "founded": "2023-24", "gm": null, "logo": "assets/logos/blacklotus.svg"},
-    {"id": "onegang",  "name": "The One Gang",        "draft_slot": 5, "founded": "2023-24", "gm": null, "logo": "assets/logos/theonegang.svg"},
-    {"id": "nosmoke",  "name": "No Smoke Nifty Team", "draft_slot": 6, "founded": "2023-24", "gm": null, "logo": "assets/logos/nosmoke.svg"},
-    {"id": "jorge",    "name": "jorge's Scary Team",  "draft_slot": 7, "founded": "2023-24", "gm": null, "logo": "assets/logos/jorgescaryteam.svg"},
-    {"id": "andeme",   "name": "Andemegoat",          "draft_slot": 8, "founded": "2023-24", "gm": null, "logo": "assets/logos/andemegoat.svg"}
+    {"id": "malakito", "name": "Malakito de Memphis", "draft_slot": 1, "founded": "2025-26", "gm": null, "logo": "assets/logos/malakito.svg",       "color": "#DB6117"},
+    {"id": "panzas",   "name": "CB Panzas",           "draft_slot": 2, "founded": "2023-24", "gm": null, "logo": "assets/logos/cbpanzas.svg",       "color": "#776AAD"},
+    {"id": "franche",  "name": "Franche",             "draft_slot": 3, "founded": "2023-24", "gm": null, "logo": "assets/logos/franche.svg",        "color": "#242424"},
+    {"id": "lotus",    "name": "Black Lotus",         "draft_slot": 4, "founded": "2023-24", "gm": null, "logo": "assets/logos/blacklotus.svg",     "color": "#F7941D"},
+    {"id": "onegang",  "name": "The One Gang",        "draft_slot": 5, "founded": "2023-24", "gm": null, "logo": "assets/logos/theonegang.svg",     "color": "#BB2B38"},
+    {"id": "nosmoke",  "name": "No Smoke Nifty Team", "draft_slot": 6, "founded": "2023-24", "gm": null, "logo": "assets/logos/nosmoke.svg",        "color": "#D62627"},
+    {"id": "jorge",    "name": "jorge's Scary Team",  "draft_slot": 7, "founded": "2023-24", "gm": null, "logo": "assets/logos/jorgescaryteam.svg", "color": "#56C8ED"},
+    {"id": "andeme",   "name": "Andemegoat",          "draft_slot": 8, "founded": "2023-24", "gm": null, "logo": "assets/logos/andemegoat.svg",     "color": "#56C9EE"}
   ],
 
   "champions": [

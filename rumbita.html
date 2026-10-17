@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Rumbita · FLORI Fantasy Cup</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Big+Shoulders+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <main id="main" class="wrap">
+    <article class="memorial">
+      <div class="rafters">
+        <div class="hang"><div class="jersey" id="jersey"></div></div>
+      </div>
+      <img class="crest" id="crest" alt="" width="88" height="88" hidden>
+      <h1 id="name"></h1>
+      <p class="title" id="title"></p>
+      <p class="facts" id="facts"></p>
+      <div class="tribute" id="tribute"></div>
+    </article>
+  </main>
+
+  <script type="module">
+    import { mountChrome, el, jerseySVG } from "./js/ui.js";
+
+    const cfg = await mountChrome(null, { plain: true });
+    const { league, emeritus: em } = cfg;
+
+    document.getElementById("jersey").append(jerseySVG(cfg));
+    if (em.logo) {
+      const crest = document.getElementById("crest");
+      crest.src = em.logo;
+      crest.hidden = false;
+    }
+    document.getElementById("name").textContent = em.name;
+    document.getElementById("title").textContent = `${em.title} of the ${league.name}`;
+
+    const facts = [`Team “${em.team_name}”`];
+    if (em.seasons) facts.push(Array.isArray(em.seasons) ? `Seasons ${em.seasons.join(", ")}` : `Seasons ${em.seasons}`);
+    document.getElementById("facts").textContent = facts.join(" · ");
+
+    // Jose's own words, only if he wrote any (HTML comments in the file are ignored).
+    if (em.tribute_text_file) {
+      try {
+        const r = await fetch(em.tribute_text_file, { cache: "no-cache" });
+        if (r.ok) {
+          const text = (await r.text()).replace(/<!--[\s\S]*?-->/g, "").trim();
+          if (text) {
+            const box = document.getElementById("tribute");
+            for (const para of text.split(/\n\s*\n/)) box.append(el("p", {}, para.replace(/\s*\n\s*/g, " ")));
+          }
+        }
+      } catch { /* nothing to show */ }
+    }
+  </script>
+</body>
+</html>
