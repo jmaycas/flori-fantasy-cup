@@ -65,12 +65,11 @@
       say("config-status", `Connected to project “${firebaseConfig.projectId}”.`, "ok");
 
       const ref = doc(db, "drafts", "rehearsal");
-      try {
-        const snap = await getDoc(ref);
-        say("read-status", `Public read of drafts/rehearsal: OK (${snap.exists() ? "document exists" : "no document yet"}).`, "ok");
-      } catch (e) {
-        say("read-status", `Public read of drafts/rehearsal failed: ${e.code || e.message}. Publish the rules first.`, "bad");
-      }
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("no answer after 10 s")), 10000));
+      say("read-status", "Public read of drafts/rehearsal: testing…");
+      Promise.race([getDoc(ref), timeout])
+        .then(snap => say("read-status", `Public read of drafts/rehearsal: OK (${snap.exists() ? "document exists" : "no document yet"}).`, "ok"))
+        .catch(e => say("read-status", `Public read of drafts/rehearsal failed: ${e.code || e.message}. Publish the rules first.`, "bad"));
 
       $("sign-in").disabled = false;
       $("sign-in").onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => say("auth-status", `Sign-in failed: ${e.code || e.message}`, "bad"));
