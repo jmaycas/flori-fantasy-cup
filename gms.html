@@ -22,7 +22,7 @@
   </main>
 
   <script type="module">
-    import { mountChrome, el, teamChip, passwordGate } from "./js/ui.js";
+    import { mountChrome, el, crownsOf, franchiseStats, passwordGate } from "./js/ui.js";
 
     const cfg = await mountChrome("gms");
     const content = document.getElementById("content");
@@ -50,25 +50,62 @@
       try { sessionStorage.setItem(SESSION_KEY, v); } catch { /* private mode: ask again next time */ }
     }
 
-    function card(team, gm) {
+    // One row per GM: the trading card plus the bio panel beside it (stacked on phones).
+    function gmRow(team, gm) {
+      const st = franchiseStats(cfg, team.id);
+      const champ = st.titles > 0;
+      const name = gm?.gm_name || "";
+      const abilities = (gm?.abilities || []).filter(Boolean);
+
       const photo = gm?.photo
-        ? el("img", { class: "photo", src: gm.photo, alt: gm.gm_name ? `Photo of ${gm.gm_name}` : `GM of ${team.name}` })
+        ? el("img", { class: "photo", src: gm.photo, alt: name ? `Photo of ${name}` : `General Manager of ${team.name}` })
         : el("div", { class: "placeholder" }, el("img", { src: team.logo, alt: "" }), "Photo coming");
-      const name = gm?.gm_name || "General Manager";
-      return el("article", { class: "gm-card", style: { "--team": team.color } },
-        el("div", { class: "gm-photo" }, photo),
-        el("div", { class: "gm-body" },
-          el("h2", { class: "gm-name" }, name),
-          gm?.nickname ? el("div", { class: "gm-nick" }, `“${gm.nickname}”`) : null,
-          teamChip(cfg, team.id),
-          el("div", { class: "gm-meta" }, `Franchise since ${team.founded}`),
-          gm?.bio ? el("div", { class: "gm-bio" }, gm.bio) : el("div", { class: "gm-bio empty" }, "Bio coming soon.")));
+
+      const tags = el("div", { class: "tcard-tags" },
+        st.rookie ? el("span", { class: "tcard-rc", title: "Rookie card: first season in the league" }, "RC") : null,
+        champ ? el("span", { class: "tcard-crowns", role: "img", "aria-label": `${st.titles} title${st.titles > 1 ? "s" : ""}` }, crownsOf(cfg, team.id)) : null);
+
+      const banner = el("div", { class: "tcard-banner" },
+        el("div", { class: "tcard-name" }, name || "General Manager"),
+        el("div", { class: "tcard-role" },
+          name ? ["General Manager", el("span", { class: "sep", "aria-hidden": "true" }, "·")] : null,
+          team.name));
+
+      const abilityRow = el("div", { class: "tcard-abilities", "aria-label": "Abilities" },
+        abilities.length
+          ? abilities.slice(0, 3).map(a => el("span", { class: "ability", lang: "es" }, a))
+          : el("span", { class: "ability soon" }, "Coming soon"));
+
+      const stats = el("dl", { class: "tcard-stats" },
+        el("div", {}, el("dt", {}, "Seasons"), el("dd", {}, st.seasons)),
+        el("div", {}, el("dt", {}, "Titles"), el("dd", {}, st.titles)),
+        el("div", {}, el("dt", {}, `${cfg.league.season} pick`), el("dd", {}, `#${st.pick}`)));
+
+      const card = el("article", { class: `tcard${champ ? " champion" : ""}`, style: { "--team": team.color },
+          "aria-label": `Trading card: ${name || "General Manager"}, ${team.name}` },
+        el("div", { class: "tcard-inner" },
+          el("div", { class: "tcard-photo" },
+            el("div", { class: "tcard-logo" }, el("img", { src: team.logo, alt: "" })),
+            tags, photo, banner),
+          abilityRow, stats));
+
+      const panel = el("section", { class: `gm-panel${champ ? " champion" : ""}`, style: { "--team": team.color } },
+        el("div", { class: "gm-panel-head" },
+          el("img", { src: team.logo, alt: "" }),
+          el("div", {},
+            el("h2", {}, team.name, champ ? el("span", { class: "crowns", "aria-hidden": "true" }, crownsOf(cfg, team.id)) : null),
+            el("div", { class: "meta" }, `Founded ${team.founded}${name ? ` · General Manager: ${name}` : ""}`))),
+        gm?.bio
+          ? el("p", { class: "gm-bio", lang: "es" }, gm.bio)
+          : el("p", { class: "gm-bio soon" }, "Coming soon"));
+
+      return el("div", { class: "gm-row" }, card, panel);
     }
 
     function render(data) {
       const byTeam = Object.fromEntries((data.gms || []).map(g => [g.team_id, g]));
       const teams = [...cfg.teams].sort((a, b) => a.draft_slot - b.draft_slot);
-      content.replaceChildren(el("div", { class: "gm-grid" }, teams.map(t => card(t, byTeam[t.id]))));
+      content.replaceChildren(el("div", { class: "gm-list" }, teams.map(t => gmRow(t, byTeam[t.id]))));
     }
 
     let enc = null;

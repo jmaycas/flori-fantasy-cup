@@ -4,6 +4,12 @@ private/
 *.env
 .env*
 
+# raw GM photos — they ship only inside the encrypted assets/gms.enc.json
+assets/pics/
+
+# bios encryption script — runs only on the commissioner's machine
+scripts/encrypt_bios.mjs
+
 # live Firestore rules contain the commissioner UID; the public copy is firestore.rules.example
 firestore.rules
 

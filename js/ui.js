@@ -55,6 +55,22 @@ export function crownsOf(cfg, teamId) {
   return cfg.crown_emoji.repeat(titlesOf(cfg, teamId));
 }
 
+// Seasons are labelled "2025-26"; the start year orders them.
+export const seasonStart = s => parseInt(s.slice(0, 4), 10);
+
+// Last completed season = the latest season with a champion.
+export function lastCompletedSeason(cfg) {
+  return [...cfg.champions].sort((a, b) => seasonStart(a.season) - seasonStart(b.season)).at(-1).season;
+}
+
+// Computed franchise facts — never typed: seasons played (founding season through the last
+// completed season), titles, and this season's draft slot.
+export function franchiseStats(cfg, teamId) {
+  const t = teamById(cfg, teamId);
+  const seasons = Math.max(0, seasonStart(lastCompletedSeason(cfg)) - seasonStart(t.founded) + 1);
+  return { seasons, titles: titlesOf(cfg, teamId), pick: t.draft_slot, founded: t.founded, rookie: seasons === 1 };
+}
+
 function crownsSpan(cfg, teamId) {
   const n = titlesOf(cfg, teamId);
   if (!n) return null;

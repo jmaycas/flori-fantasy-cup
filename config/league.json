@@ -10,7 +10,6 @@
     "rounds": 13,
     "draft_type": "snake",
     "draft_date": "2026-10-19",
-    "pick_timer_seconds": 120,
     "trade_deadline": "2027-02-26",
     "roster": {
       "starters": ["PG", "SG", "SF", "PF", "C", "G", "F", "UTIL", "UTIL", "UTIL"],

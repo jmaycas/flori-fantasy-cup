@@ -167,21 +167,62 @@ code { font-size: .9em; background: #EEF1F5; padding: 2px 5px; border-radius: 4p
 /* ---------- Crown table ---------- */
 .crowns-cell { letter-spacing: .05em; }
 
-/* ---------- GMs ---------- */
-.gm-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
-@media (min-width: 640px) { .gm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1040px) { .gm-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.gm-card { background: var(--surface); border: 1px solid var(--rule); border-top: 4px solid var(--team, var(--arena)); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
-.gm-photo { aspect-ratio: 4 / 5; background: #E9EDF2; display: grid; place-items: center; overflow: hidden; }
-.gm-photo img.photo { width: 100%; height: 100%; object-fit: cover; }
-.gm-photo .placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--muted); font-size: .9rem; padding: 18px; border: 2px dashed #C3CCD8; border-radius: 6px; margin: 18px; align-self: stretch; justify-self: stretch; justify-content: center; }
-.gm-photo .placeholder img { width: 72px; height: 72px; object-fit: contain; opacity: .85; }
-.gm-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-.gm-name { font-family: var(--display); font-weight: 800; font-size: 1.6rem; line-height: 1; }
-.gm-nick { color: var(--hardwood-ink); font-weight: 600; }
-.gm-meta { font-size: .9rem; color: var(--muted); }
-.gm-bio { background: var(--paper); border-left: 3px solid var(--hardwood); padding: 10px 12px; font-size: .98rem; white-space: pre-line; }
-.gm-bio.empty { color: var(--muted); font-style: italic; }
+/* ---------- GMs: trading cards ---------- */
+.gm-list { display: flex; flex-direction: column; gap: 28px; }
+.gm-row { display: grid; gap: 16px; grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 760px) { .gm-row { grid-template-columns: 340px minmax(0, 1fr); gap: 24px; } }
+
+.tcard {
+  --frame: var(--team, var(--arena));
+  position: relative; width: 100%; max-width: 360px; margin-inline: auto;
+  padding: 9px; border-radius: 16px; background: var(--frame);
+  box-shadow: 0 2px 4px rgba(15, 35, 64, .12), 0 12px 28px rgba(15, 35, 64, .18);
+}
+.tcard.champion {
+  --frame: linear-gradient(135deg, #F3D27A 0%, #D9A93B 28%, #A87A1C 52%, #E9C35F 74%, #B98A27 100%);
+  box-shadow: 0 0 0 1px #8A6516, 0 2px 4px rgba(15, 35, 64, .12), 0 12px 28px rgba(138, 101, 22, .35);
+}
+.tcard-inner { position: relative; border-radius: 9px; overflow: hidden; background: var(--surface); }
+.tcard.champion .tcard-inner { box-shadow: inset 0 0 0 3px var(--team, var(--arena)); }
+
+.tcard-photo { position: relative; aspect-ratio: 4 / 5; background: linear-gradient(160deg, var(--arena-2), var(--arena)); overflow: hidden; }
+.tcard-photo img.photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tcard-photo .placeholder { position: absolute; inset: 76px 18px 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border: 2px dashed rgba(255, 255, 255, .35); border-radius: 8px; color: #C9D5E6; font-weight: 600; }
+.tcard-photo .placeholder img { width: 84px; height: 84px; object-fit: contain; background: #fff; border-radius: 50%; padding: 10px; }
+
+.tcard-logo { position: absolute; top: 10px; left: 10px; width: 54px; height: 54px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 0 0 3px var(--team, var(--arena)), 0 3px 8px rgba(0, 0, 0, .3); z-index: 2; }
+.tcard-logo img { width: 40px; height: 40px; object-fit: contain; }
+.tcard-tags { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; z-index: 2; }
+.tcard-rc { font-family: var(--display); font-weight: 800; font-size: 1.15rem; line-height: 1; color: #fff; background: var(--clock); padding: 7px 8px 6px; border-radius: 6px; border: 2px solid #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .3); letter-spacing: .04em; }
+.tcard-crowns { background: rgba(15, 35, 64, .85); border: 2px solid var(--gold); border-radius: 999px; padding: 2px 8px; font-size: 1rem; letter-spacing: .05em; }
+
+.tcard-banner { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 14px 9px; background: linear-gradient(transparent, rgba(10, 22, 42, .25) 0, rgba(10, 22, 42, .92) 22%); color: #fff; z-index: 1; }
+.tcard-banner::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--team, var(--hardwood)); }
+.tcard.champion .tcard-banner::before { background: var(--gold); }
+.tcard-name { font-family: var(--display); font-weight: 800; font-size: 1.55rem; line-height: 1.05; margin-top: 4px; }
+.tcard-role { font-size: .82rem; color: #C9D5E6; font-weight: 500; margin-top: 2px; }
+.tcard-role .sep { color: var(--gold); padding-inline: 4px; }
+
+.tcard-abilities { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 10px 10px 4px; }
+.ability { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 34px; padding: 4px 6px; border-radius: 6px; background: var(--arena); color: #fff; font-weight: 600; font-size: .84rem; line-height: 1.15; box-shadow: inset 0 -3px 0 var(--team, var(--hardwood)); overflow-wrap: anywhere; }
+.tcard.champion .ability { box-shadow: inset 0 -3px 0 var(--gold); }
+.tcard .ability.soon { grid-column: 1 / -1; background: transparent; color: var(--muted); box-shadow: none; border: 2px dashed var(--rule); font-weight: 500; }
+
+.tcard-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 8px 10px 10px; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.tcard-stats div { text-align: center; padding: 6px 4px 7px; }
+.tcard-stats div + div { border-left: 1px solid var(--rule); }
+.tcard-stats dt { font-size: .7rem; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.tcard-stats dd { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.6rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+
+.gm-panel { background: var(--surface); border: 1px solid var(--rule); border-top: 4px solid var(--team, var(--arena)); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.gm-panel.champion { border-top-color: var(--gold); }
+.gm-panel-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.gm-panel-head img { width: 56px; height: 56px; object-fit: contain; flex: none; }
+.gm-panel-head h2 { font-size: clamp(1.5rem, 4vw, 2rem); margin: 0; }
+.gm-panel-head .meta { color: var(--muted); font-size: .92rem; }
+.gm-panel-head .crowns { font-size: .9em; margin-left: 6px; }
+.gm-bio { font-size: 1.05rem; line-height: 1.6; margin: 0; max-width: 68ch; }
+.gm-bio.soon { color: var(--muted); font-style: italic; }
 
 /* ---------- password-gate ---------- */
 .gate-backdrop { position: fixed; inset: 0; background: rgba(15, 35, 64, .82); display: grid; place-items: center; padding: 16px; z-index: 50; }

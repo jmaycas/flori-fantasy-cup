@@ -68,7 +68,7 @@
       hero.append(
         el("p", { class: "when" }, days === 0 ? "Tonight" : days === 1 ? `Tomorrow · ${dayLabel}` : dayLabel),
         el("h2", {}, "Draft Night"),
-        el("p", {}, `${league.n_teams} franchises, ${league.rounds} rounds, snake order, ${league.pick_timer_seconds / 60} minutes on the clock when it runs. Follow every pick live from your phone — no login needed.`),
+        el("p", {}, `${league.n_teams} franchises, ${league.rounds} rounds, snake order. Follow every pick, the draft grid and all rosters live from your phone — no login needed.`),
         el("a", { class: "btn", href: "draft.html" }, "Open the draft room"));
     } else {
       hero.append(
