@@ -4,10 +4,14 @@ private/
 *.env
 .env*
 
+# local-only agent instructions, setup guide and working notes — never public
+CLAUDE.md
+.claude/
+notes/
+SETUP.md
+
 # local tooling
-.claude/settings.local.json
 .DS_Store
 node_modules/
 __pycache__/
 *.pyc
-notes/scratch/
