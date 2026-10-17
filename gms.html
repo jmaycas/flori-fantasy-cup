@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>General Managers · FLORI Fantasy Cup</title>
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/favicon-32.png?v=2" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/favicon.svg?v=2" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Big+Shoulders+Display:wght@700;800&display=swap" rel="stylesheet">
@@ -62,11 +64,12 @@
         : el("div", { class: "placeholder" }, el("img", { src: team.logo, alt: "" }), "Photo coming");
 
       const tags = el("div", { class: "tcard-tags" },
-        st.rookie ? el("span", { class: "tcard-rc", title: "Rookie card: first season in the league" }, "RC") : null,
+        team.initials ? el("span", { class: "tcard-initials", title: `${team.name} initials` }, team.initials) : null,
         champ ? el("span", { class: "tcard-crowns", role: "img", "aria-label": `${st.titles} title${st.titles > 1 ? "s" : ""}` }, crownsOf(cfg, team.id)) : null);
 
       const banner = el("div", { class: "tcard-banner" },
         el("div", { class: "tcard-name" }, name || "General Manager"),
+        gm?.nickname ? el("div", { class: "tcard-nick", lang: "es" }, `“${gm.nickname}”`) : null,
         el("div", { class: "tcard-role" },
           name ? ["General Manager", el("span", { class: "sep", "aria-hidden": "true" }, "·")] : null,
           team.name));
