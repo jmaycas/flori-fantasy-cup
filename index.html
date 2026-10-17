@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Home · FLORI Fantasy Cup</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Big+Shoulders+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap"><a class="wordmark" href="./">FLORI Fantasy Cup</a></div>
+  </header>
+
+  <main class="wrap">
+    <h1 id="headline">FLORI Fantasy Cup</h1>
+    <p class="lede" id="lede">The arena is being built. Draft Night opens here before tip-off.</p>
+    <ul class="franchises" id="franchises" aria-label="Franchises"></ul>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap" id="footer-text">FLORI Fantasy Cup</div>
+  </footer>
+
+  <script type="module">
+    const res = await fetch("config/league.json");
+    const cfg = await res.json();
+    const { league, teams, champions, crown_emoji } = cfg;
+
+    document.getElementById("headline").textContent = `${league.name} ${league.season}`;
+    const draft = new Date(league.draft_date + "T12:00:00");
+    const when = draft.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    document.getElementById("lede").textContent =
+      `The arena is being built. Draft Night opens here on ${when}: ${league.n_teams} franchises, ${league.rounds} rounds, snake order.`;
+    document.getElementById("footer-text").textContent = `${league.name} · ${league.season} · ${league.platform} · ${league.scoring_type}`;
+
+    const crowns = id => crown_emoji.repeat(champions.filter(c => c.team_id === id).length);
+    const list = document.getElementById("franchises");
+    for (const t of [...teams].sort((a, b) => a.draft_slot - b.draft_slot)) {
+      const li = document.createElement("li");
+      li.className = "franchise";
+      const img = document.createElement("img");
+      img.src = t.logo; img.alt = ""; img.width = 64; img.height = 64;
+      const name = document.createElement("div");
+      name.className = "name"; name.textContent = t.name;
+      const cr = document.createElement("div");
+      cr.className = "crowns";
+      const n = crowns(t.id);
+      cr.textContent = n;
+      if (n) cr.setAttribute("aria-label", `${n.length / crown_emoji.length} title(s)`);
+      li.append(img, name, cr);
+      list.append(li);
+    }
+  </script>
+</body>
+</html>

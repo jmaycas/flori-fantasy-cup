@@ -1,0 +1,13 @@
+{
+  "_instructions": "Copy this file to private/gms.json (gitignored), fill it in, then run the encrypt script. Photos: put image files in private/photos/ and reference them by file name. Never commit private/.",
+  "gms": [
+    {"team_id": "malakito", "gm_name": "", "nickname": "", "photo": "", "bio": ""},
+    {"team_id": "panzas",   "gm_name": "", "nickname": "", "photo": "", "bio": ""},
+    {"team_id": "franche",  "gm_name": "", "nickname": "", "photo": "", "bio": ""},
+    {"team_id": "lotus",    "gm_name": "", "nickname": "", "photo": "", "bio": ""},
+    {"team_id": "onegang",  "gm_name": "", "nickname": "", "photo": "", "bio": ""},
+    {"team_id": "nosmoke",  "gm_name": "", "nickname": "", "photo": "", "bio": ""},
+    {"team_id": "jorge",    "gm_name": "", "nickname": "", "photo": "", "bio": ""},
+    {"team_id": "andeme",   "gm_name": "", "nickname": "", "photo": "", "bio": ""}
+  ]
+}

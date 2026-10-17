@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Setup · FLORI Fantasy Cup</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Big+Shoulders+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap"><a class="wordmark" href="./">FLORI Fantasy Cup</a></div>
+  </header>
+
+  <main class="wrap">
+    <h1>Commissioner setup</h1>
+    <p class="lede">Checks the Firebase connection, shows your user ID for the Firestore rules, and tests a write to the rehearsal room.</p>
+
+    <section class="card" aria-labelledby="h-config">
+      <h2 id="h-config">1. Firebase config</h2>
+      <p id="config-status">Checking…</p>
+    </section>
+
+    <section class="card" aria-labelledby="h-auth">
+      <h2 id="h-auth">2. Sign in</h2>
+      <p id="auth-status">Not signed in.</p>
+      <button class="btn" id="sign-in" disabled>Sign in with Google</button>
+      <button class="btn" id="sign-out" hidden>Sign out</button>
+      <pre id="rules" hidden></pre>
+    </section>
+
+    <section class="card" aria-labelledby="h-db">
+      <h2 id="h-db">3. Firestore</h2>
+      <p id="read-status">Public read of <code>drafts/rehearsal</code>: not tested.</p>
+      <p id="write-status">Commissioner write to <code>drafts/rehearsal</code>: sign in first.</p>
+      <button class="btn" id="test-write" disabled>Test write</button>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">FLORI Fantasy Cup</div>
+  </footer>
+
+  <script type="module">
+    import { firebaseConfig, FIREBASE_SDK } from "./js/firebase-config.js";
+    const $ = id => document.getElementById(id);
+    const say = (id, text, cls) => { const el = $(id); el.textContent = text; el.className = cls || ""; };
+
+    if (!firebaseConfig) {
+      say("config-status", "Not configured yet: paste the firebaseConfig object into js/firebase-config.js.", "bad");
+    } else {
+      const { initializeApp } = await import(`${FIREBASE_SDK}/firebase-app.js`);
+      const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } =
+        await import(`${FIREBASE_SDK}/firebase-auth.js`);
+      const { getFirestore, doc, getDoc, setDoc, serverTimestamp } =
+        await import(`${FIREBASE_SDK}/firebase-firestore.js`);
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      say("config-status", `Connected to project “${firebaseConfig.projectId}”.`, "ok");
+
+      const ref = doc(db, "drafts", "rehearsal");
+      try {
+        const snap = await getDoc(ref);
+        say("read-status", `Public read of drafts/rehearsal: OK (${snap.exists() ? "document exists" : "no document yet"}).`, "ok");
+      } catch (e) {
+        say("read-status", `Public read of drafts/rehearsal failed: ${e.code || e.message}. Publish the rules first.`, "bad");
+      }
+
+      $("sign-in").disabled = false;
+      $("sign-in").onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => say("auth-status", `Sign-in failed: ${e.code || e.message}`, "bad"));
+      $("sign-out").onclick = () => signOut(auth);
+
+      onAuthStateChanged(auth, user => {
+        $("sign-in").hidden = !!user;
+        $("sign-out").hidden = !user;
+        $("test-write").disabled = !user;
+        $("rules").hidden = !user;
+        if (!user) { say("auth-status", "Not signed in."); return; }
+        say("auth-status", `Signed in as ${user.displayName || "you"}. Your user ID: ${user.uid}`, "ok");
+        $("rules").textContent =
+`rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid in ['${user.uid}'];
+    }
+  }
+}`;
+      });
+
+      $("test-write").onclick = async () => {
+        try {
+          await setDoc(ref, { setupCheck: serverTimestamp() }, { merge: true });
+          say("write-status", "Commissioner write to drafts/rehearsal: OK.", "ok");
+        } catch (e) {
+          say("write-status", `Write failed: ${e.code || e.message}. Check that your user ID is in the published rules.`, "bad");
+        }
+      };
+    }
+  </script>
+</body>
+</html>

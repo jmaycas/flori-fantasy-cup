@@ -1,0 +1,13 @@
+# secrets and private plaintext — never commit
+.secrets/
+private/
+*.env
+.env*
+
+# local tooling
+.claude/settings.local.json
+.DS_Store
+node_modules/
+__pycache__/
+*.pyc
+notes/scratch/

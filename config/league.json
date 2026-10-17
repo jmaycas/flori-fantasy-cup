@@ -1,0 +1,54 @@
+{
+  "league": {
+    "name": "FLORI Fantasy Cup",
+    "platform": "ESPN",
+    "season": "2026-27",
+    "espn_season_id": 2027,
+    "espn_league_id": null,
+    "scoring_type": "Total Season Points",
+    "n_teams": 8,
+    "rounds": 13,
+    "draft_type": "snake",
+    "draft_date": "2026-10-19",
+    "pick_timer_seconds": 120,
+    "trade_deadline": "2027-02-26",
+    "roster": {
+      "starters": ["PG", "SG", "SF", "PF", "C", "G", "F", "UTIL", "UTIL", "UTIL"],
+      "bench": 3,
+      "ir": 1,
+      "games_caps": {"PG": 82, "SG": 82, "SF": 82, "PF": 82, "C": 82, "G": 82, "F": 82, "UTIL": 246},
+      "max_starter_games": 820
+    },
+    "scoring": {"FGM": 2, "FGA": -1, "FTM": 1, "FTA": -1, "3PM": 1, "REB": 1, "AST": 2, "STL": 4, "BLK": 4, "TO": -2, "PTS": 1}
+  },
+
+  "teams": [
+    {"id": "malakito", "name": "Malakito de Memphis", "draft_slot": 1, "founded": "2025-26", "gm": null, "logo": "assets/logos/malakito.svg"},
+    {"id": "panzas",   "name": "CB Panzas",           "draft_slot": 2, "founded": "2023-24", "gm": null, "logo": "assets/logos/cbpanzas.svg"},
+    {"id": "franche",  "name": "Franche",             "draft_slot": 3, "founded": "2023-24", "gm": null, "logo": "assets/logos/franche.svg"},
+    {"id": "lotus",    "name": "Black Lotus",         "draft_slot": 4, "founded": "2023-24", "gm": null, "logo": "assets/logos/blacklotus.svg"},
+    {"id": "onegang",  "name": "The One Gang",        "draft_slot": 5, "founded": "2023-24", "gm": null, "logo": "assets/logos/theonegang.svg"},
+    {"id": "nosmoke",  "name": "No Smoke Nifty Team", "draft_slot": 6, "founded": "2023-24", "gm": null, "logo": "assets/logos/nosmoke.svg"},
+    {"id": "jorge",    "name": "jorge's Scary Team",  "draft_slot": 7, "founded": "2023-24", "gm": null, "logo": "assets/logos/jorgescaryteam.svg"},
+    {"id": "andeme",   "name": "Andemegoat",          "draft_slot": 8, "founded": "2023-24", "gm": null, "logo": "assets/logos/andemegoat.svg"}
+  ],
+
+  "champions": [
+    {"season": "2023-24", "team_id": "nosmoke"},
+    {"season": "2024-25", "team_id": "franche"},
+    {"season": "2025-26", "team_id": "nosmoke"}
+  ],
+  "crown_emoji": "👑",
+  "crown_rule": "One crown per title, computed from `champions` — never typed into team names.",
+
+  "emeritus": {
+    "name": "Rumbita",
+    "team_name": "Rumbita",
+    "title": "Commissioner Emeritus",
+    "logo": "assets/logos/rumbita.svg",
+    "jersey_number": null,
+    "seasons": null,
+    "tribute_text_file": "content/rumbita.md",
+    "note": "Words on his page are written by Jose only. Leave fields empty until he provides them; never invent biography."
+  }
+}
