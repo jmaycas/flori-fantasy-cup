@@ -201,12 +201,11 @@ code { font-size: .9em; background: #EEF1F5; padding: 2px 5px; border-radius: 4p
 .tcard-banner::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--team, var(--hardwood)); }
 .tcard.champion .tcard-banner::before { background: var(--gold); }
 .tcard-name { font-family: var(--display); font-weight: 800; font-size: 1.55rem; line-height: 1.05; margin-top: 4px; }
-.tcard-nick { font-weight: 600; font-size: .9rem; color: var(--gold); margin-top: 1px; }
 .tcard-role { font-size: .82rem; color: #C9D5E6; font-weight: 500; margin-top: 2px; }
 .tcard-role .sep { color: var(--gold); padding-inline: 4px; }
 
 .tcard-abilities { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 10px 10px 4px; }
-.ability { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 34px; padding: 4px 6px; border-radius: 6px; background: var(--arena); color: #fff; font-weight: 600; font-size: .84rem; line-height: 1.15; box-shadow: inset 0 -3px 0 var(--team, var(--hardwood)); overflow-wrap: anywhere; }
+.ability { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 34px; padding: 4px 6px; border-radius: 6px; background: var(--arena); color: #fff; font-weight: 600; font-size: .84rem; line-height: 1.15; box-shadow: inset 0 -3px 0 var(--team, var(--hardwood)); overflow-wrap: break-word; hyphens: manual; min-width: 0; }
 .tcard.champion .ability { box-shadow: inset 0 -3px 0 var(--gold); }
 .tcard .ability.soon { grid-column: 1 / -1; background: transparent; color: var(--muted); box-shadow: none; border: 2px dashed var(--rule); font-weight: 500; }
 

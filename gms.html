@@ -56,7 +56,9 @@
     function gmRow(team, gm) {
       const st = franchiseStats(cfg, team.id);
       const champ = st.titles > 0;
-      const name = gm?.gm_name || "";
+      // Name line: "Name (Nickname)", just one of them when the other is missing.
+      const real = (gm?.gm_name || "").trim(), nick = (gm?.nickname || "").trim();
+      const name = real && nick ? `${real} (${nick})` : real || nick;
       const abilities = (gm?.abilities || []).filter(Boolean);
 
       const photo = gm?.photo
@@ -69,7 +71,6 @@
 
       const banner = el("div", { class: "tcard-banner" },
         el("div", { class: "tcard-name" }, name || "General Manager"),
-        gm?.nickname ? el("div", { class: "tcard-nick", lang: "es" }, `“${gm.nickname}”`) : null,
         el("div", { class: "tcard-role" },
           name ? ["General Manager", el("span", { class: "sep", "aria-hidden": "true" }, "·")] : null,
           team.name));
