@@ -16,18 +16,211 @@
 <body>
   <main id="main" class="wrap">
     <div class="page-head">
-      <p class="kicker">Live draft room</p>
+      <p class="kicker">Draft room</p>
       <h1>Draft Night</h1>
+      <p class="draft-status" id="status"></p>
     </div>
-    <div class="card empty-state">
-      <strong>The draft room opens on draft night</strong>
-      Every pick, the draft grid and all eight rosters will update here live. No login needed.
-    </div>
+
+    <section class="card commish" id="commish" hidden aria-labelledby="h-commish">
+      <h2 id="h-commish">Commissioner</h2>
+      <p id="commish-msg" class="muted"></p>
+      <div class="btn-row">
+        <button class="btn" type="button" id="import">Import draft results</button>
+        <button class="btn" type="button" id="finalize">Finalize rosters</button>
+        <button class="btn secondary" type="button" id="export-csv">Export CSV</button>
+        <button class="btn secondary" type="button" id="export-txt">Export text</button>
+        <button class="btn secondary" type="button" id="sign-out">Sign out</button>
+      </div>
+    </section>
+
+    <div id="content"></div>
+
+    <p class="commish-link"><button type="button" class="linklike" id="sign-in" hidden>Commissioner sign-in</button></p>
   </main>
 
   <script type="module">
-    import { mountChrome } from "./js/ui.js";
-    await mountChrome("draft");
+    import { mountChrome, el, teamById, crownsOf, liveDot } from "./js/ui.js";
+    import { firebase, snakeTeam, positionStrip, checkPicks, rostersFromPicks, loadResultsFile, posLabel, POSITIONS } from "./js/draft.js";
+
+    const cfg = await mountChrome("draft");
+    const params = new URLSearchParams(location.search);
+    const draftId = params.get("draft") || cfg.league.season;
+    const fromFile = params.get("source") === "file";
+    const order = [...cfg.teams].sort((a, b) => a.draft_slot - b.draft_slot).map(t => t.id);
+    const rounds = cfg.league.rounds;
+    const $ = id => document.getElementById(id);
+    let draft = null;
+    let activeTeam = order[0];
+
+    // ---------- rendering ----------
+
+    function statusLine(dot) {
+      const picks = draft?.picks || [];
+      const total = order.length * rounds;
+      const text = !draft || !picks.length ? "Waiting for the first pick."
+        : draft.status === "done" ? `Draft complete · ${picks.length} picks · ${rounds} rounds, snake order.`
+        : `Pick ${picks.length + 1} of ${total} · round ${Math.floor(picks.length / order.length) + 1}`;
+      $("status").replaceChildren(dot ? dot.node : "", dot ? " " : "", text,
+        fromFile ? el("span", { class: "muted" }, " · Preview from the results file") : "");
+    }
+
+    function ticker(picks) {
+      const last = [...picks].sort((a, b) => (b.ts ?? b.n) - (a.ts ?? a.n)).slice(0, 5);
+      return el("section", { class: "section", "aria-labelledby": "h-ticker" },
+        el("h2", { id: "h-ticker" }, "Latest picks"),
+        el("ol", { class: "ticker" }, last.map(p => el("li", {},
+          el("span", { class: "tk-n" }, `#${p.n}`),
+          el("img", { src: teamById(cfg, p.teamId).logo, alt: "" }),
+          el("span", { class: "tk-name" }, p.name),
+          el("span", { class: "muted" }, `${posLabel(p)} · ${p.nbaTeam}`),
+          el("span", { class: "tk-team muted" }, teamById(cfg, p.teamId).name)))));
+    }
+
+    function grid(picks) {
+      const at = new Map(picks.map(p => [p.n, p]));
+      const next = picks.length < order.length * rounds && draft?.status !== "done" ? picks.length + 1 : null;
+      const head = el("tr", {}, el("th", { scope: "col", class: "rd" }, "Rd"),
+        order.map(id => { const t = teamById(cfg, id);
+          return el("th", { scope: "col" }, el("img", { src: t.logo, alt: "" }), el("span", {}, t.name)); }));
+      const body = Array.from({ length: rounds }, (_, r) => el("tr", {},
+        el("th", { scope: "row", class: "rd" }, r + 1),
+        order.map((id, i) => {
+          const n = r % 2 === 0 ? r * order.length + i + 1 : r * order.length + order.length - i;
+          const p = at.get(n);
+          return el("td", { class: n === next ? "on-clock" : null, style: { "--team": teamById(cfg, id).color } },
+            el("span", { class: "g-n" }, n),
+            p ? [el("span", { class: "g-name" }, p.name), el("span", { class: "g-meta" }, `${posLabel(p)} · ${p.nbaTeam}`)]
+              : el("span", { class: "g-empty" }, "—"));
+        })));
+      return el("section", { class: "section", "aria-labelledby": "h-grid" },
+        el("h2", { id: "h-grid" }, "Draft grid"),
+        el("div", { class: "table-wrap" },
+          el("table", { class: "draft-grid" }, el("caption", { class: "visually-hidden" }, "Picks by round and team"),
+            el("thead", {}, head), el("tbody", {}, body))));
+    }
+
+    function strip(players) {
+      const { counts, filled } = positionStrip(players);
+      return el("div", { class: "pos-strip" },
+        el("div", { class: "pos-counts", "aria-label": "Players eligible per position" },
+          POSITIONS.map(p => el("span", {}, el("b", {}, p), " ", counts[p]))),
+        el("div", { class: "pos-slots", "aria-label": "Starting slots that can be filled" },
+          Object.entries(filled).map(([s, ok]) => el("span", { class: ok ? "ok" : "miss", title: ok ? `${s} slot can be filled` : `No player for the ${s} slot` }, s))));
+    }
+
+    function rosters(picks) {
+      const byTeam = rostersFromPicks(picks, order);
+      const tabs = el("div", { class: "team-tabs", role: "tablist", "aria-label": "Teams" },
+        order.map(id => el("button", { type: "button", role: "tab", "aria-selected": String(id === activeTeam),
+          onclick: () => { activeTeam = id; render(); } },
+          el("img", { src: teamById(cfg, id).logo, alt: "" }), el("span", {}, teamById(cfg, id).initials || id))));
+      const cards = order.map(id => {
+        const t = teamById(cfg, id);
+        const players = byTeam[id];
+        return el("article", { class: `roster-card${id === activeTeam ? " active" : ""}`, style: { "--team": t.color } },
+          el("h3", {}, el("img", { src: t.logo, alt: "" }), el("span", {}, t.name, " ", el("span", { class: "crowns" }, crownsOf(cfg, id)))),
+          strip(players),
+          players.length
+            ? el("ol", { class: "roster-list" }, players.map(p => el("li", {},
+                el("span", { class: "rl-pick" }, `R${p.round} · #${p.pick}`),
+                el("span", { class: "rl-name" }, p.name),
+                el("span", { class: "rl-meta" }, `${posLabel(p)} · ${p.nbaTeam}`))))
+            : el("p", { class: "muted" }, "No picks yet."));
+      });
+      return el("section", { class: "section", "aria-labelledby": "h-rosters" },
+        el("h2", { id: "h-rosters" }, "Rosters"), tabs, el("div", { class: "roster-cards" }, cards));
+    }
+
+    let dot = null;
+    function render() {
+      statusLine(dot);
+      const picks = draft?.picks || [];
+      if (!draft) {
+        $("content").replaceChildren(el("div", { class: "card empty-state" },
+          el("strong", {}, "The draft room is empty"),
+          "Picks will appear here live. No login needed."));
+        return;
+      }
+      $("content").replaceChildren(...(picks.length ? [ticker(picks)] : []), grid(picks), rosters(picks));
+    }
+
+    // ---------- export ----------
+
+    function download(name, text, type) {
+      const a = el("a", { href: URL.createObjectURL(new Blob([text], { type })), download: name });
+      document.body.append(a); a.click(); a.remove();
+    }
+    const sorted = () => [...(draft?.picks || [])].sort((a, b) => a.n - b.n);
+    const csvCell = v => /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+    $("export-csv").onclick = () => download(`draft-${draftId}.csv`,
+      ["pick,round,team,player,nba_team,pos", ...sorted().map(p =>
+        [p.n, p.round, teamById(cfg, p.teamId).name, p.name, p.nbaTeam, posLabel(p)].map(v => csvCell(String(v))).join(","))].join("\n") + "\n", "text/csv");
+    $("export-txt").onclick = () => download(`draft-${draftId}.txt`,
+      sorted().map(p => `${p.n}. ${teamById(cfg, p.teamId).name} — ${p.name} (${p.nbaTeam}, ${posLabel(p)})`).join("\n") + "\n", "text/plain");
+
+    // ---------- data ----------
+
+    if (fromFile) {
+      const file = await loadResultsFile(draftId);
+      draft = { ...file, status: "done" };
+      render();
+    } else {
+      dot = liveDot();
+      render();
+      const { auth, db, A, F } = await firebase();
+      const ref = F.doc(db, "drafts", draftId);
+      F.onSnapshot(ref, { includeMetadataChanges: true }, snap => {
+        dot.set(!snap.metadata.fromCache);
+        draft = snap.exists() ? snap.data() : null;
+        render();
+      }, () => dot.set(false));
+
+      // Commissioner controls (writes are allowed only for the commissioner's account by the rules).
+      const say = (msg, cls = "muted") => { $("commish-msg").textContent = msg; $("commish-msg").className = cls; };
+      $("sign-in").hidden = false;
+      $("sign-in").onclick = () => A.signInWithPopup(auth, new A.GoogleAuthProvider()).catch(e => say(`Sign-in failed: ${e.code || e.message}`, "bad"));
+      $("sign-out").onclick = () => A.signOut(auth);
+      A.onAuthStateChanged(auth, user => {
+        $("commish").hidden = !user;
+        $("sign-in").hidden = !!user;
+        if (user) say(`Signed in as ${user.displayName || "commissioner"}. Draft document: drafts/${draftId}.`);
+      });
+
+      $("import").onclick = async () => {
+        try {
+          const file = await loadResultsFile(draftId);
+          const problems = checkPicks(file.picks, order, rounds);
+          if (problems.length) return say(`Results file rejected: ${problems.join("; ")}`, "bad");
+          const existing = draft?.picks?.length || 0;
+          if (!confirm(`Write ${file.picks.length} picks to drafts/${draftId} with status “done”?` +
+              (existing ? `\n\nThis replaces the ${existing} picks already there.` : ""))) return;
+          const base = Date.now();
+          await F.runTransaction(db, async tx => {
+            const cur = await tx.get(ref);
+            if ((cur.exists() ? cur.data().picks?.length || 0 : 0) !== existing) throw new Error("the draft changed meanwhile; try again");
+            tx.set(ref, { order, rounds, status: "done", source: "import",
+              picks: file.picks.map(p => ({ ...p, ts: base + p.n })), updatedAt: F.serverTimestamp() });
+          });
+          say(`Imported ${file.picks.length} picks. Status: done.`, "ok");
+        } catch (e) { say(`Import failed: ${e.code || e.message}`, "bad"); }
+      };
+
+      $("finalize").onclick = async () => {
+        try {
+          const picks = draft?.picks || [];
+          const problems = checkPicks(picks, order, rounds);
+          if (draft?.status !== "done" || problems.length) return say(`Not ready to finalize: ${draft?.status !== "done" ? "draft status is not done" : problems.join("; ")}`, "bad");
+          if (!confirm(`Write the ${order.length} rosters (rosters/{team}) from the draft? This replaces any current rosters.`)) return;
+          const byTeam = rostersFromPicks(picks, order);
+          const batch = F.writeBatch(db);
+          for (const id of order) batch.set(F.doc(db, "rosters", id),
+            { teamId: id, season: cfg.league.season, source: "draft", players: byTeam[id], updatedAt: F.serverTimestamp() });
+          batch.update(ref, { rostersFinalizedAt: F.serverTimestamp() });
+          await batch.commit();
+          say(`Rosters finalized for ${order.length} teams. They now show on the Teams page.`, "ok");
+        } catch (e) { say(`Finalize failed: ${e.code || e.message}`, "bad"); }
+      };
+    }
   </script>
 </body>
 </html>

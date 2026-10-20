@@ -18,16 +18,81 @@
     <div class="page-head">
       <p class="kicker">Rosters</p>
       <h1>Teams</h1>
+      <p class="draft-status" id="status"></p>
     </div>
-    <div class="card empty-state">
-      <strong>Rosters appear after the draft</strong>
-      Each franchise's roster and the league's transaction log will live here.
-    </div>
+    <div id="content"></div>
   </main>
 
   <script type="module">
-    import { mountChrome } from "./js/ui.js";
-    await mountChrome("teams");
+    import { mountChrome, el, teamById, crownsOf, liveDot } from "./js/ui.js";
+    import { firebase, positionStrip, rostersFromPicks, loadResultsFile, posLabel, mainPos, byPosition, POSITIONS } from "./js/draft.js";
+
+    const cfg = await mountChrome("teams");
+    const fromFile = new URLSearchParams(location.search).get("source") === "file";
+    const order = [...cfg.teams].sort((a, b) => a.draft_slot - b.draft_slot).map(t => t.id);
+    const SOURCE_LABEL = { draft: "From the draft", espn: "ESPN sync", commissioner: "Commissioner edit" };
+    const POS_NAME = { PG: "Point guards", SG: "Shooting guards", SF: "Small forwards", PF: "Power forwards", C: "Centers" };
+    const $ = id => document.getElementById(id);
+
+    function strip(players) {
+      const { counts, filled } = positionStrip(players);
+      return el("div", { class: "pos-strip" },
+        el("div", { class: "pos-counts", "aria-label": "Players eligible per position" },
+          POSITIONS.map(p => el("span", {}, el("b", {}, p), " ", counts[p]))),
+        el("div", { class: "pos-slots", "aria-label": "Starting slots that can be filled" },
+          Object.entries(filled).map(([s, ok]) => el("span", { class: ok ? "ok" : "miss", title: ok ? `${s} slot can be filled` : `No player for the ${s} slot` }, s))));
+    }
+
+    function teamCard(id, roster) {
+      const t = teamById(cfg, id);
+      const players = [...(roster?.players || [])].sort(byPosition);
+      const groups = POSITIONS.map(pos => [pos, players.filter(p => mainPos(p) === pos)]).filter(([, ps]) => ps.length);
+      return el("article", { class: "team-roster card", id: `team-${id}`, style: { "--team": t.color } },
+        el("header", { class: "tr-head" },
+          el("img", { src: t.logo, alt: "" }),
+          el("div", {},
+            el("h2", {}, t.name, " ", el("span", { class: "crowns" }, crownsOf(cfg, id))),
+            el("p", { class: "muted" }, `${players.length} players · ${SOURCE_LABEL[roster?.source] || "—"}`))),
+        strip(players),
+        groups.map(([pos, ps]) => el("section", { class: "tr-group", "aria-label": POS_NAME[pos] },
+          el("h3", {}, el("span", { class: "tr-pos" }, pos), POS_NAME[pos]),
+          el("ul", {}, ps.map(p => el("li", {},
+            el("span", { class: "tr-name" }, p.name),
+            el("span", { class: "tr-meta" }, `${posLabel(p)} · ${p.nbaTeam}`),
+            p.pick ? el("span", { class: "tr-pick" }, `R${p.round} · #${p.pick}`) : null))))));
+    }
+
+    let dot = null;
+    function render(rosters) {
+      const have = order.filter(id => rosters[id]?.players?.length);
+      $("status").replaceChildren(dot ? dot.node : "", dot ? " " : "",
+        have.length ? `${have.length} rosters · ${cfg.league.season}` : "",
+        fromFile ? el("span", { class: "muted" }, " · Preview from the results file") : "");
+      if (!have.length) {
+        $("content").replaceChildren(el("div", { class: "card empty-state" },
+          el("strong", {}, "Rosters appear after the draft"),
+          "Each franchise's roster will live here."));
+        return;
+      }
+      const jump = el("nav", { class: "team-jump", "aria-label": "Jump to team" },
+        order.map(id => el("a", { href: `#team-${id}`, title: teamById(cfg, id).name },
+          el("img", { src: teamById(cfg, id).logo, alt: "" }), el("span", {}, teamById(cfg, id).initials || id))));
+      $("content").replaceChildren(jump, el("div", { class: "team-rosters" }, order.map(id => teamCard(id, rosters[id]))));
+    }
+
+    if (fromFile) {
+      const file = await loadResultsFile(cfg.league.season);
+      const byTeam = rostersFromPicks(file.picks, order);
+      render(Object.fromEntries(order.map(id => [id, { source: "draft", players: byTeam[id] }])));
+    } else {
+      dot = liveDot();
+      render({});
+      const { db, F } = await firebase();
+      F.onSnapshot(F.collection(db, "rosters"), { includeMetadataChanges: true }, snap => {
+        dot.set(!snap.metadata.fromCache);
+        render(Object.fromEntries(snap.docs.map(d => [d.id, d.data()])));
+      }, () => dot.set(false));
+    }
   </script>
 </body>
 </html>
