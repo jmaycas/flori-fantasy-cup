@@ -19,15 +19,30 @@
       <p class="kicker">Morning debrief</p>
       <h1>Pablete ESPN ☕</h1>
     </div>
-    <div class="card empty-state">
-      <strong>Pablete ESPN ☕ starts after the first night of games.</strong>
-      Every morning: points, spaces used and points per space for each franchise.
+    <div id="pablete" data-state="loading" aria-live="polite">
+      <div class="card empty-state"><strong>Brewing the Pablete…</strong>Fetching the latest numbers from the league sheet.</div>
     </div>
   </main>
 
-  <script type="module">
-    import { mountChrome } from "./js/ui.js";
-    await mountChrome("pablete");
+  <script type="module" src="js/pablete.js"></script>
+  <script>
+    (function () {
+      var box = document.getElementById("pablete");
+      function fail(title, text) {
+        box.setAttribute("data-state", "error");
+        box.innerHTML = '<div class="card empty-state" role="alert"><strong>' + title + '</strong>' + text + '</div>';
+      }
+      // Opened as a file: browsers block the page's modules, so say how to open it instead.
+      if (location.protocol === "file:") {
+        fail("Open via a local server: python3 -m http.server",
+             "This page can't load its data from a file. Run the command in the site folder and open http://localhost:8000/pablete.html.");
+        return;
+      }
+      // Safety net: if the page script never runs (old browser, failed download), don't stay on "loading".
+      setTimeout(function () {
+        if (box.getAttribute("data-state") === "loading") fail("The Pablete can't load right now.", "Try reloading the page in a minute.");
+      }, 25000);
+    })();
   </script>
 </body>
 </html>
