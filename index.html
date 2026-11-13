@@ -41,7 +41,7 @@
   </main>
 
   <script type="module">
-    import { mountChrome, el, crownsOf, titlesOf, teamChip, boxTable } from "./js/ui.js";
+    import { mountChrome, el, crownsOf, titlesOf } from "./js/ui.js";
 
     const cfg = await mountChrome("home");
     const { league, teams } = cfg;
@@ -80,34 +80,13 @@
         el("a", { class: "btn", href: "teams.html" }, "See the rosters"));
     }
 
-    // Standings and latest debrief (data/pablete.json appears once the daily ESPN sync runs).
-    const sBody = document.getElementById("standings-body");
-    const dBody = document.getElementById("debrief-body");
-    let pablete = null;
-    try {
-      const r = await fetch("data/pablete.json", { cache: "no-cache" });
-      if (r.ok) pablete = await r.json();
-    } catch { /* not published yet */ }
-
-    if (pablete?.season?.length) {
-      sBody.append(boxTable({
-        caption: "Standings by total points",
-        sortKey: "total", sortDir: "desc",
-        rows: pablete.season,
-        columns: [
-          { key: "team", label: "Team", value: r => teams.find(t => t.id === r.team_id).name, render: r => teamChip(cfg, r.team_id) },
-          { key: "total", label: "Points", num: true, value: r => r.total_points, render: r => r.total_points.toLocaleString("en-GB") },
-        ],
-      }));
-      dBody.append(
-        el("p", {}, pablete.headline || `Debrief for ${pablete.date}`),
-        el("a", { class: "btn secondary", href: "pablete.html" }, "Read the debrief"));
-    } else {
-      sBody.append(el("p", { class: "muted" }, "Standings start after the first night of games."));
-      dBody.append(
-        el("p", { class: "muted" }, "The morning debrief starts after the first night of games."),
-        el("a", { class: "btn secondary", href: "pablete.html" }, "About the debrief"));
-    }
+    // Standings and the debrief both live on the Pablete page (data from the league sheet).
+    document.getElementById("standings-body").append(
+      el("p", { class: "muted" }, "Total points, rank and every move since the last Pablete are on the Pablete page."),
+      el("a", { class: "btn secondary", href: "pablete.html" }, "See the standings"));
+    document.getElementById("debrief-body").append(
+      el("p", { class: "muted" }, "The league's morning paper: the race for the top and points per lineup space for every franchise. Updated after every Pablete."),
+      el("a", { class: "btn secondary", href: "pablete.html" }, "Open the Pablete"));
   </script>
 </body>
 </html>
