@@ -89,7 +89,6 @@ export function parseDate(raw) {
 function teamLookup(cfg) {
   const map = new Map();
   for (const t of cfg.teams) for (const n of [t.name, ...(t.aliases ?? [])]) map.set(norm(n), t.id);
-  for (const [alias, id] of Object.entries(PABLETE.teamAliases ?? {})) map.set(norm(alias), id);
   return map;
 }
 

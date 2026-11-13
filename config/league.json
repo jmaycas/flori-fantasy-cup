@@ -28,7 +28,7 @@
     {"id": "lotus",    "name": "Black Lotus",        "initials": "DORA",   "draft_slot": 4, "founded": "2023-24", "gm": null, "logo": "assets/logos/blacklotus.svg",     "color": "#F7941D"},
     {"id": "onegang",  "name": "The One Gang",       "initials": "K1",     "draft_slot": 5, "founded": "2023-24", "gm": null, "logo": "assets/logos/theonegang.svg",     "color": "#BB2B38"},
     {"id": "nosmoke",  "name": "No Smoke Nifty Team", "initials": "NST",    "draft_slot": 6, "founded": "2023-24", "gm": null, "logo": "assets/logos/nosmoke.svg",        "color": "#D62627"},
-    {"id": "jorge",    "name": "jorge's Scary Team", "initials": "JST",    "draft_slot": 7, "founded": "2023-24", "gm": null, "logo": "assets/logos/jorgescaryteam.svg", "color": "#56C8ED"},
+    {"id": "jorge",    "name": "Georgehood Team",    "initials": "GHT",    "draft_slot": 7, "founded": "2023-24", "gm": null, "logo": "assets/logos/georgehood.svg",     "color": "#1F9E89", "aliases": ["jorge's Scary Team"]},
     {"id": "andeme",   "name": "Andemegoat",         "initials": "ADGT",   "draft_slot": 8, "founded": "2023-24", "gm": null, "logo": "assets/logos/andemegoat.svg",     "color": "#56C9EE"}
   ],
 

@@ -1,6 +1,6 @@
 // Pablete ESPN ☕ — data source settings. The league sheet (tab HISTORIAL) is published
 // as CSV; the page fetches it on every load. Team names in the sheet are matched to
-// config/league.json by name; aliases cover the names that differ.
+// config/league.json by name or by a team's former names ("aliases" in league.json).
 
 export const PABLETE = {
   csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTFzr6YHqhxPpu1wdMzoCor3CruujPE11g0eIx-FC4rER0oqtAIGdiDOT9x3Zt7H-RtGBj-P6kmjb0g/pub?gid=449176894&single=true&output=csv",
@@ -10,11 +10,6 @@ export const PABLETE = {
   cacheKey: "pablete_csv_v1",
   // A CSV must have at least this many valid rows to be shown or cached.
   minValidRows: 8,
-
-  // Sheet name -> team id in config/league.json (only names that differ from league.json).
-  teamAliases: {
-    "Georgehood Team": "jorge",
-  },
 
   // Column headers in the sheet (matched ignoring case, accents and extra spaces).
   columns: {

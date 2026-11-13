@@ -40,7 +40,8 @@ def main():
     by_name = collections.defaultdict(list)
     for p in pool:
         by_name[norm(p["name"])].append(p)
-    team_ids = {norm(t["name"]): t["id"] for t in cfg["teams"]}
+    # Current names plus former names ("aliases"), so older exports still resolve.
+    team_ids = {norm(n): t["id"] for t in cfg["teams"] for n in [t["name"], *t.get("aliases", [])]}
     order = [t["id"] for t in sorted(cfg["teams"], key=lambda t: t["draft_slot"])]
     n_teams, rounds = len(order), cfg["league"]["rounds"]
 
