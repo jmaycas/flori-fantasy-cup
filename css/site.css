@@ -397,6 +397,65 @@ code { font-size: .9em; background: #EEF1F5; padding: 2px 5px; border-radius: 4p
   .pablete-table .pb-team-cell { padding-left: 11px; }
 }
 
+/* Pablete: team chip bar (drives every chart) */
+.chipbar-wrap { margin: 0 0 16px; }
+.chipbar-row { display: flex; align-items: center; gap: 10px; }
+.chipbar-actions { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.chip-act { all: unset; cursor: pointer; text-align: center; font-weight: 600; font-size: .85rem; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--rule); background: var(--surface); color: var(--arena); }
+.chip-act:hover { border-color: var(--arena); }
+.chip-act[disabled] { opacity: .45; cursor: default; border-color: var(--rule); }
+.chip-act:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.chipbar { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 3px 3px 7px; flex: 1; min-width: 0; }
+.chip { all: unset; cursor: pointer; flex: none; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 54px; padding: 6px 4px 6px; border-radius: 8px; background: var(--surface); border: 1px solid var(--rule); box-shadow: inset 0 -4px 0 var(--team, var(--hardwood)); font-size: .72rem; font-weight: 600; color: var(--ink); }
+.chip img { width: 28px; height: 28px; object-fit: contain; }
+.chip[aria-pressed="false"] { opacity: .4; box-shadow: none; filter: grayscale(.7); }
+.chip:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+@media (min-width: 900px) { .chip { width: 66px; } .chipbar-actions { flex-direction: row; } }
+
+/* Pablete: chart cards */
+.pb-card { padding: 16px; }
+.pb-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 4px; }
+.pb-card-head h2 { margin: 0; }
+.pb-section { margin-top: 32px; }
+.seg .lbl-short { display: none; }
+.seg-metric button { padding: 6px 10px; }
+@media (max-width: 640px) {
+  .seg-metric { display: flex; width: 100%; }
+  .seg-metric button { flex: 1; text-align: center; padding: 6px 4px; }
+  .seg-metric .lbl-long { display: none; }
+  .seg-metric .lbl-short { display: inline; }
+}
+
+.race-host { position: relative; min-height: 200px; }
+.race-loading { padding: 40px 0; text-align: center; }
+.race-caption { margin: 4px 0 2px; font-size: .82rem; color: var(--muted); }
+.race-wrap { position: relative; }
+.race-svg { display: block; max-width: 100%; height: auto; touch-action: pan-y; font-family: var(--body); -webkit-tap-highlight-color: transparent; }
+.race-svg:focus { outline: none; }
+.race-svg:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; border-radius: 4px; }
+.race-grid line { stroke: #E6EAF0; stroke-width: 1; }
+.race-axis text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.race-cross { stroke: #9AA6B6; stroke-width: 1; }
+.race-leader { fill: none; stroke: #B7C0CC; stroke-width: 1; }
+.race-name { fill: var(--ink); font-size: 13px; font-weight: 600; }
+.race-label, .race-hit { cursor: pointer; }
+
+.race-tip { position: absolute; z-index: 5; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 6px 24px rgba(15, 35, 64, .18); padding: 10px 12px; width: 370px; pointer-events: none; font-size: .85rem; }
+.race-readout { margin-top: 8px; border-top: 1px solid var(--rule); padding-top: 8px; font-size: .85rem; }
+.rr-head { margin: 0 0 6px; }
+.rr-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.rr-list li { display: grid; grid-template-columns: 12px 18px minmax(0, 1fr) auto 50px 58px; align-items: center; column-gap: 6px; }
+.rr-list img { width: 18px; height: 18px; object-fit: contain; }
+.rr-key { width: 12px; height: 3px; border-radius: 2px; }
+.rr-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.rr-val { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700; }
+.rr-chg, .rr-sp { font-variant-numeric: tabular-nums; text-align: right; font-size: .78rem; }
+.rr-chg.up { color: #1D7A3A; }
+.rr-chg.down { color: var(--clock); }
+.rr-chg.flat, .rr-sp { color: var(--muted); }
+.rr-foot { margin: 6px 0 0; font-size: .72rem; color: var(--muted); }
+.rr-empty { margin: 0; color: var(--muted); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

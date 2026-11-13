@@ -1,18 +1,30 @@
-// Pablete ESPN ☕ — page rendering: latest Pablete as a sortable box-score table with a
-// "With outs / Without outs" toggle. Data comes from js/pablete-data.js.
+// Pablete ESPN ☕ — page: visuals first. Team chip bar + With/Without outs toggle drive every
+// chart; "The Race" line chart; the full sortable table at the bottom.
+// Data comes from js/pablete-data.js; charts load D3 lazily from js/pablete-race.js so the
+// page still works (table included) if the chart library can't be fetched.
 
 import { mountChrome, el, teamById, crownsOf } from "./ui.js";
 import { loadPablete, buildPablete, fmtDate, fmtStamp, fmtNum } from "./pablete-data.js";
 
 const root = document.getElementById("pablete");
 const MODE_KEY = "pablete_mode_v1";
+const SEL_KEY = "pablete_sel_v1";
+const METRIC_KEY = "pablete_metric_v1";
 const PHONE = window.matchMedia("(max-width: 640px)");
+const METRIC_LABELS = { gap: ["Gap to leader", "Gap"], points: ["Total points", "Points"], avg: ["Average", "Average"], rank: ["Rank", "Rank"] };
 
-function readMode() {
-  try { return localStorage.getItem(MODE_KEY) === "clean" ? "clean" : "all"; } catch { return "all"; }
-}
-function saveMode(mode) {
-  try { localStorage.setItem(MODE_KEY, mode); } catch { /* storage unavailable */ }
+// ---------- per-viewer preferences (never required to work) ----------
+
+function readPref(key) { try { return localStorage.getItem(key); } catch { return null; } }
+function savePref(key, value) { try { localStorage.setItem(key, value); } catch { /* storage unavailable */ } }
+
+function readSelection(cfg) {
+  const ids = new Set(cfg.teams.map(t => t.id));
+  try {
+    const raw = JSON.parse(readPref(SEL_KEY));
+    if (Array.isArray(raw)) return new Set(raw.filter(id => ids.has(id)));
+  } catch { /* fall through */ }
+  return new Set(ids);
 }
 
 // ---------- states ----------
@@ -43,7 +55,7 @@ function showEmpty() {
       "The sheet has no rows to show."));
 }
 
-// ---------- cells ----------
+// ---------- table cells ----------
 
 const DASH = () => el("span", { class: "muted", title: "First Pablete — nothing to compare with" }, "—");
 
@@ -75,8 +87,6 @@ function withDelta(main, delta, decimals) {
 
 const ptsDecimals = x => (x == null || Number.isInteger(x) ? 0 : 1);
 
-// ---------- columns ----------
-
 function columnsFor(cfg, mode, phone) {
   const clean = mode === "clean";
   const c = {
@@ -103,32 +113,30 @@ function columnsFor(cfg, mode, phone) {
   return order.map(k => c[k]);
 }
 
-// ---------- sortable table (state survives the toggle and the phone/desktop switch) ----------
-
-function pableteTable(cfg, entries, state) {
+function pableteTable(cfg, entries, state, rerender) {
   const columns = columnsFor(cfg, state.mode, PHONE.matches);
-  if (!columns.some(c => c.key === state.key)) { state.key = "points"; state.dir = "desc"; }
-  const col = columns.find(c => c.key === state.key);
+  if (!columns.some(c => c.key === state.sortKey)) { state.sortKey = "points"; state.sortDir = "desc"; }
+  const col = columns.find(c => c.key === state.sortKey);
   const sorted = [...entries].sort((a, b) => {
     const va = col.value(a), vb = col.value(b);
     const cmp = typeof va === "string" ? va.localeCompare(vb, "en", { sensitivity: "base" }) : va - vb;
-    return (state.dir === "asc" ? cmp : -cmp) || a.rank - b.rank;
+    return (state.sortDir === "asc" ? cmp : -cmp) || a.rank - b.rank;
   });
 
   const head = el("tr", {}, columns.map(c => {
-    const active = c.key === state.key;
+    const active = c.key === state.sortKey;
     const btn = el("button", { type: "button" },
       el("span", {}, c.label, c.note ? el("small", {}, c.note) : null),
-      el("span", { class: "arrow", "aria-hidden": "true" }, active ? (state.dir === "asc" ? "▲" : "▼") : "↕"));
+      el("span", { class: "arrow", "aria-hidden": "true" }, active ? (state.sortDir === "asc" ? "▲" : "▼") : "↕"));
     btn.addEventListener("click", () => {
-      if (state.key === c.key) state.dir = state.dir === "asc" ? "desc" : "asc";
-      else { state.key = c.key; state.dir = c.dir || (c.num ? "desc" : "asc"); }
-      state.rerender();
+      if (state.sortKey === c.key) state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+      else { state.sortKey = c.key; state.sortDir = c.dir || (c.num ? "desc" : "asc"); }
+      rerender();
     });
     return el("th", {
       scope: "col",
       class: [c.num ? "num" : "", c.sticky ? `sticky-${c.sticky}` : ""].join(" ").trim() || null,
-      "aria-sort": active ? (state.dir === "asc" ? "ascending" : "descending") : "none",
+      "aria-sort": active ? (state.sortDir === "asc" ? "ascending" : "descending") : "none",
     }, btn);
   }));
 
@@ -144,18 +152,39 @@ function pableteTable(cfg, entries, state) {
       el("thead", {}, head), body));
 }
 
-function modeToggle(state) {
-  const opt = (mode, label) => el("button", {
-    type: "button", "aria-pressed": String(state.mode === mode),
-    onclick: () => { if (state.mode !== mode) { state.mode = mode; saveMode(mode); state.rerender(); } },
-  }, label);
-  return el("div", { class: "seg", role: "group", "aria-label": "Outs" }, opt("all", "With outs"), opt("clean", "Without outs"));
+// ---------- controls ----------
+
+function segmented(label, options, current, onPick, cls = "") {
+  return el("div", { class: `seg ${cls}`.trim(), role: "group", "aria-label": label },
+    options.map(([value, text, short]) => el("button", {
+      type: "button", "aria-pressed": String(current === value),
+      onclick: () => { if (current !== value) onPick(value); },
+    }, short ? [el("span", { class: "lbl-long" }, text), el("span", { class: "lbl-short", "aria-hidden": "true" }, short)] : text)));
 }
 
-function modeNote(mode) {
-  return mode === "clean"
-    ? el("p", { class: "fine" }, "Without outs: clean spaces = spaces − outs; average = points ÷ clean spaces. Lost points (estimate) = outs × average without outs. Small figures: change since the previous Pablete.")
-    : el("p", { class: "fine" }, "Average = total points ÷ spaces used (spaces include outs). Small figures: change since the previous Pablete.");
+function chipBar(cfg, state, update) {
+  const all = cfg.teams.length;
+  const chips = [...cfg.teams].sort((a, b) => a.draft_slot - b.draft_slot).map(t => {
+    const on = state.selected.has(t.id);
+    return el("button", {
+      type: "button", class: "chip", "aria-pressed": String(on), title: t.name,
+      style: { "--team": t.color },
+      onclick: () => {
+        if (on) state.selected.delete(t.id); else state.selected.add(t.id);
+        update();
+      },
+    },
+      el("img", { src: t.logo, alt: "", width: 28, height: 28 }),
+      el("span", { class: "chip-name" }, t.initials),
+      el("span", { class: "visually-hidden" }, ` ${t.name}`));
+  });
+  return el("div", { class: "chipbar-row" },
+    el("div", { class: "chipbar-actions" },
+      el("button", { type: "button", class: "chip-act", disabled: state.selected.size === all,
+        onclick: () => { cfg.teams.forEach(t => state.selected.add(t.id)); update(); } }, "All"),
+      el("button", { type: "button", class: "chip-act", disabled: state.selected.size === 0,
+        onclick: () => { state.selected.clear(); update(); } }, "Clear")),
+    el("div", { class: "chipbar", role: "group", "aria-label": "Teams shown" }, chips));
 }
 
 // ---------- page ----------
@@ -169,22 +198,66 @@ function render(cfg, result) {
   const prevDates = data.dates.filter(d => d < data.latest);
   const warnings = [...parsed.warnings, ...data.warnings];
 
-  const state = { mode: readMode(), key: "points", dir: "desc", rerender: null };
-  const tableSlot = el("div");
-  const toolbar = el("div", { class: "pb-toolbar" });
+  const state = {
+    mode: readPref(MODE_KEY) === "clean" ? "clean" : "all",
+    metric: METRIC_LABELS[readPref(METRIC_KEY)] ? readPref(METRIC_KEY) : "gap",
+    selected: readSelection(cfg),
+    raceMs: null,
+    sortKey: "points", sortDir: "desc",
+  };
 
-  state.rerender = () => {
+  const toolbar = el("div", { class: "pb-toolbar" });
+  const chipsSlot = el("div", { class: "chipbar-wrap" });
+  const raceControls = el("div", { class: "race-controls" });
+  const raceHost = el("div", { class: "race-host" }, el("p", { class: "muted race-loading" }, "Drawing the chart…"));
+  const tableSlot = el("div");
+
+  let raceModule = null, raceFailed = false;
+
+  function drawRace() {
+    if (raceFailed) return;
+    if (!raceModule) return;
+    try {
+      raceModule.renderRace(raceHost, {
+        cfg, data, state,
+        onPickTeam: id => {
+          const all = state.selected.size === cfg.teams.length;
+          if (all) { state.selected.clear(); state.selected.add(id); }
+          else if (state.selected.has(id)) state.selected.delete(id);
+          else state.selected.add(id);
+          update();
+        },
+        onDate: ms => { state.raceMs = ms; },
+      });
+    } catch (e) {
+      console.error(e);
+      raceHost.replaceChildren(el("p", { class: "fine" }, "The chart couldn't be drawn. Every number is in the full table below."));
+    }
+  }
+
+  function drawAll() {
     toolbar.replaceChildren(
       el("p", { class: "pb-updated" },
         `Updated: ${fmtDate(data.latest)}`,
         el("span", { class: "muted" }, prevDates.length ? ` · vs ${fmtDate(prevDates.at(-1)).slice(0, 5)}` : " · first Pablete")),
-      modeToggle(state));
+      segmented("Outs", [["all", "With outs"], ["clean", "Without outs"]], state.mode, v => { state.mode = v; savePref(MODE_KEY, v); drawAll(); }));
+    chipsSlot.replaceChildren(chipBar(cfg, state, update));
+    raceControls.replaceChildren(
+      segmented("Metric", Object.entries(METRIC_LABELS).map(([k, [long, short]]) => [k, long, short]), state.metric,
+        v => { state.metric = v; savePref(METRIC_KEY, v); drawAll(); }, "seg-metric"));
+    drawRace();
     tableSlot.replaceChildren(
       el("p", { class: "fine pb-scroll-hint", "aria-hidden": "true" }, "Swipe the table for more →"),
-      pableteTable(cfg, entries, state), modeNote(state.mode));
-  };
-  state.rerender();
-  PHONE.addEventListener("change", () => state.rerender());
+      pableteTable(cfg, entries, state, drawAll),
+      el("p", { class: "fine" }, state.mode === "clean"
+        ? "Without outs: clean spaces = spaces − outs; average = points ÷ clean spaces. Lost points (estimate) = outs × average without outs. Small figures: change since the previous Pablete."
+        : "Average = total points ÷ spaces used (spaces include outs). Small figures: change since the previous Pablete."));
+  }
+
+  function update() {
+    savePref(SEL_KEY, JSON.stringify([...state.selected]));
+    drawAll();
+  }
 
   const banner = result.source === "cache"
     ? el("p", { class: "notice", role: "status" }, `Saved data from ${fmtStamp(result.fetchedAt)} — couldn’t refresh`)
@@ -197,7 +270,38 @@ function render(cfg, result) {
     : null;
 
   root.dataset.state = "ready";
-  root.replaceChildren(...[banner, toolbar, tableSlot, warnBox].filter(Boolean));
+  root.replaceChildren(...[
+    banner,
+    toolbar,
+    chipsSlot,
+    el("section", { class: "card pb-card", "aria-labelledby": "h-race" },
+      el("div", { class: "pb-card-head" }, el("h2", { id: "h-race" }, "The Race"), raceControls),
+      raceHost),
+    el("section", { class: "pb-section", "aria-labelledby": "h-table" },
+      el("h2", { id: "h-table" }, "Full table"),
+      tableSlot),
+    warnBox,
+  ].filter(Boolean));
+  drawAll();
+
+  // Redraw the chart when its width changes (rotation, window resize) or phone/desktop flips.
+  let lastW = 0, raf = 0;
+  new ResizeObserver(() => {
+    const w = Math.floor(raceHost.clientWidth);
+    if (w === lastW) return;
+    lastW = w;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(drawRace);
+  }).observe(raceHost);
+  PHONE.addEventListener("change", drawAll);
+
+  import("./pablete-race.js")
+    .then(mod => { raceModule = mod; drawRace(); })
+    .catch(e => {
+      console.error(e);
+      raceFailed = true;
+      raceHost.replaceChildren(el("p", { class: "fine" }, "The chart library couldn't load. Every number is in the full table below."));
+    });
 }
 
 async function main() {
