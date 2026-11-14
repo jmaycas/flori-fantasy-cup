@@ -474,19 +474,31 @@ details[open] > summary .tr-chev { transform: rotate(225deg); margin: 6px 6px 0 
 .race-wrap { position: relative; }
 .race-svg { display: block; max-width: 100%; height: auto; touch-action: pan-y; user-select: none; -webkit-user-select: none; font-family: var(--body); -webkit-tap-highlight-color: transparent; cursor: ew-resize; }
 .race-wrap.scrubbing .race-svg { cursor: grabbing; }
-.race-grid line { stroke: #ECEFF3; stroke-width: 1; }
+.race-grid line { stroke: #EEEEEA; stroke-width: 1; }
 .race-axis text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.race-svg.is-rank .race-axis text { font-size: 12px; font-weight: 600; fill: #6B6A63; }
 .race-line { fill: none; stroke-linejoin: round; stroke-linecap: round; }
-.race-hhead { stroke: #fff; stroke-width: 2; }
-.race-glogo { filter: grayscale(1); opacity: .6; }
 .race-leader { fill: none; stroke: #B7C0CC; stroke-width: 1; }
-.race-name { fill: var(--ink); font-size: 13px; font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
-.race-val { fill: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
-.race-label, .race-ghead { cursor: pointer; }
-.race-notes { opacity: 0; transition: opacity .3s ease; pointer-events: none; }
-.race-notes.show { opacity: 1; }
-.race-note line { stroke: #6B7585; stroke-width: .75; }
-.race-note text { fill: #2E3644; font-size: 12px; font-weight: 500; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+.race-gleader { fill: none; stroke: #DAD8CF; stroke-width: 1; }
+.race-name { fill: var(--ink); font-size: 13px; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.race-val { fill: #3A4352; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.race-gname { fill: #8A877C; font-size: 11px; font-weight: 500; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.race-label, .race-glabels g { cursor: pointer; }
+.race-tint .tint-above { fill: #EEF6EF; }
+.race-tint .tint-below { fill: #FBEFEE; }
+.race-tint .tint-label { font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+.race-tint .tint-label-above { fill: #2F6B3F; }
+.race-tint .tint-label-below { fill: #9A2E2E; }
+.race-zero line { stroke: #8C8A80; stroke-width: 1; }
+.race-zero text { fill: #55544D; font-size: 11px; font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.race-badge rect { fill: #fff; stroke-width: 1.5; }
+.race-badge text { fill: var(--ink); font-size: 11.5px; font-weight: 700; text-anchor: middle; font-variant-numeric: tabular-nums; }
+.race-caprow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 2px; }
+.race-caprow .race-caption { margin: 0; }
+.race-zoom { all: unset; cursor: pointer; flex: none; font-size: .78rem; font-weight: 600; color: var(--arena); border: 1px solid var(--rule); border-radius: 999px; padding: 3px 10px; background: var(--surface); }
+.race-zoom[hidden] { display: none; }
+.race-zoom[aria-pressed="true"] { background: var(--arena); border-color: var(--arena); color: #fff; }
+.race-zoom:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .race-rail { cursor: pointer; outline: none; }
 .race-rail:focus-visible .race-handle { stroke: var(--gold); stroke-width: 4; }
 .race-track { stroke: #DDE2E9; stroke-width: 3; stroke-linecap: round; }

@@ -14,6 +14,9 @@ export const TEMPLATES = {
   // Headlines — Rank
   hClimbs: "{team} climbs to {rank}",
   hHold: "No change in the standings",
+  // Headlines — Avg vs league
+  hAboveLeague: "{team} is {diff} points per {space} above the league",
+  hLevelLeague: "Every team is at the league average",
   // Headlines — Average
   hBestAvg: "{team} has the best average: {avg} points per {space}",
 
@@ -28,6 +31,8 @@ export const TEMPLATES = {
   // Subtitles — Rank
   sStreak: "{leader} has been 1st in {k} of {n} Pabletes.",
   sClimbFrom: "{team} was {from} on {prevDate}.",
+  // Subtitles — Avg vs league
+  sLeagueAvg: "League average: {league} points per {space}. {bottom} is {diff} below it.",
   // Subtitles — Average
   sAvgNext: "{second} is next with {avg}.",
   sAvgMove: "Biggest change since {prevDate}: {team}, {change}.",
@@ -48,6 +53,13 @@ export function ordinal(n) {
 const dm = ms => fmtDate(ms).slice(0, 5);
 const pts = x => fmtNum(Math.round(x), 0);
 const listNames = names => (names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
+
+/** League points per space on one date: Σ points ÷ Σ spaces (clean spaces when mode is "clean"). */
+export function leagueAvg(entries, mode) {
+  const p = entries.reduce((a, e) => a + e.points, 0);
+  const sp = entries.reduce((a, e) => a + (mode === "clean" ? e.clean : e.spaces), 0);
+  return sp > 0 ? p / sp : null;
+}
 
 /** Entries of one date sorted by rank (ties by name, so the order is stable). */
 export function rankOrder(cfg, entries) {
@@ -74,8 +86,8 @@ function longestLead(data, i) {
 /**
  * Words for date index i.
  * Returns { headline, dek, notes: [{ teamId, kind, text }], order, spotlight } — notes are
- * metric-independent; spotlight = the top 2 on the current metric (by average on Average,
- * by rank otherwise) plus the team a Rank headline is about.
+ * metric-independent; spotlight = the two teams the headline is about (shown in colour
+ * when the viewer hasn't picked any team).
  */
 export function story(cfg, data, i, metric, mode) {
   const name = id => cfg.teams.find(t => t.id === id)?.name ?? id;
@@ -95,8 +107,18 @@ export function story(cfg, data, i, metric, mode) {
 
   let headline, dek;
   // Teams the words are about: shown in colour when the viewer hasn't picked any team.
-  let spotlight = order.slice(0, 2).map(e => e.teamId);
-  if (metric === "avg") {
+  let spotlight = (leaders.length > 1 ? leaders : order).slice(0, 2).map(e => e.teamId);
+  const space = mode === "clean" ? "clean space" : "space";
+  if (metric === "avgvl") {
+    const lg = leagueAvg(order, mode);
+    const val = e => (mode === "clean" ? e.avgClean : e.avg);
+    const by = order.filter(e => val(e) != null).sort((a, b) => val(b) - val(a));
+    const top = by[0], bottom = by.at(-1);
+    spotlight = [top.teamId, bottom.teamId].filter((v, j, a) => a.indexOf(v) === j);
+    if (lg == null || val(top) - lg <= 0) headline = TEMPLATES.hLevelLeague;
+    else headline = fill(TEMPLATES.hAboveLeague, { team: name(top.teamId), diff: fmtNum(val(top) - lg, 2), space });
+    dek = lg == null ? "" : fill(TEMPLATES.sLeagueAvg, { league: fmtNum(lg, 2), space, bottom: name(bottom.teamId), diff: fmtNum(Math.abs(val(bottom) - lg), 2) });
+  } else if (metric === "avg") {
     const val = e => (mode === "clean" ? e.avgClean : e.avg);
     const chg = e => (mode === "clean" ? e.dAvgClean : e.dAvg);
     const byAvg = order.filter(e => val(e) != null).sort((a, b) => val(b) - val(a));
@@ -115,7 +137,12 @@ export function story(cfg, data, i, metric, mode) {
     else if (i === 0) headline = fill(TEMPLATES.hOpen, { leader: name(lead.teamId) });
     else if (climber) {
       headline = fill(TEMPLATES.hClimbs, { team: name(climber.teamId), rank: ordinal(climber.rank) });
-      if (!spotlight.includes(climber.teamId)) spotlight.push(climber.teamId);
+      // protagonists: the climber and a team it passed
+      const from = climber.rank + climber.dRank;
+      // the team that held the climber's new place on the previous Pablete, else the one right below
+      const passed = order.find(e => e.teamId !== climber.teamId && e.dRank != null && e.rank + e.dRank === climber.rank)
+        ?? order.filter(e => e.rank > climber.rank && e.dRank != null && e.rank + e.dRank < from).sort((a, b) => a.rank - b.rank)[0];
+      spotlight = [climber.teamId, (passed ?? order.find(e => e.teamId !== climber.teamId)).teamId];
     }
     else headline = TEMPLATES.hHold;
     const k = data.dates.slice(0, i + 1).filter(d => data.byDate.get(d).some(e => e.teamId === lead.teamId && e.rank === 1)).length;
@@ -134,6 +161,7 @@ export function story(cfg, data, i, metric, mode) {
     else if (i === 0) headline = fill(TEMPLATES.hOpen, { leader: name(lead.teamId) });
     else if (!prevLeaders.some(e => e.teamId === lead.teamId)) {
       headline = fill(TEMPLATES.hTakesLead, { leader: name(lead.teamId), prevLeader: listNames(prevLeaders.map(e => name(e.teamId))) });
+      spotlight = [lead.teamId, prevLeaders[0].teamId];
     } else headline = fill(TEMPLATES.hLeads, { leader: name(lead.teamId), gap: pts(gap) });
 
     const parts = [];

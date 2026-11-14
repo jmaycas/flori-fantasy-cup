@@ -8,10 +8,11 @@ import { loadPablete, buildPablete, fmtDate, fmtStamp, fmtNum } from "./pablete-
 
 const root = document.getElementById("pablete");
 const MODE_KEY = "pablete_mode_v1";
-const SEL_KEY = "pablete_sel_v2"; // v2: empty = no pick (the chart highlights the top 2)
-const METRIC_KEY = "pablete_metric_v1";
+const SEL_KEY = "pablete_sel_v3"; // v3: reset; empty = no pick (the chart highlights the headline's two teams)
+const METRIC_KEY = "pablete_metric_v2"; // v2: default becomes "Avg vs league"
+const ZOOM_KEY = "pablete_zoom_v1";
 const PHONE = window.matchMedia("(max-width: 640px)");
-const METRIC_LABELS = { gap: ["Gap to leader", "Gap"], points: ["Total points", "Points"], avg: ["Average", "Average"], rank: ["Rank", "Rank"] };
+const METRIC_LABELS = { avgvl: ["Avg vs league", "League"], gap: ["Gap to leader", "Gap"], points: ["Total points", "Points"], avg: ["Average", "Avg"], rank: ["Rank", "Rank"] };
 
 // ---------- per-viewer preferences (never required to work) ----------
 
@@ -189,7 +190,7 @@ function chipBar(cfg, state, update) {
         onclick: () => { state.selected.clear(); state.focus = null; update(); } }, "Clear")),
     el("div", { class: `chipbar${none ? " none-picked" : ""}`, role: "group", "aria-label": "Teams to highlight" }, chips)),
     el("p", { class: "chip-hint" }, none
-      ? "No team picked: the chart colours the top 2 and any team you tap."
+      ? "No team picked: the chart colours the two teams in the headline, plus any team you tap."
       : `${state.selected.size} team${state.selected.size > 1 ? "s" : ""} picked. Tap a chip, line or logo to add or remove one.`));
 }
 
@@ -206,7 +207,8 @@ function render(cfg, result) {
 
   const state = {
     mode: readPref(MODE_KEY) === "clean" ? "clean" : "all",
-    metric: METRIC_LABELS[readPref(METRIC_KEY)] ? readPref(METRIC_KEY) : "gap",
+    metric: METRIC_LABELS[readPref(METRIC_KEY)] ? readPref(METRIC_KEY) : "avgvl",
+    zoom: readPref(ZOOM_KEY) === "1",
     selected: readSelection(cfg),
     focus: null, // team tapped on the chart while nothing is picked (not saved)
     racePos: null, // scrubber position: index into the Pablete dates (null = latest; fractional while moving)
@@ -228,6 +230,7 @@ function render(cfg, result) {
     try {
       raceModule.renderRace(raceHost, {
         cfg, data, state,
+        onZoom: on => savePref(ZOOM_KEY, on ? "1" : "0"),
         // Tap on a line or logo. Nothing picked: highlight that team next to the top 2 (tap
         // again to drop it). Every team picked: keep only that one. Otherwise add/remove it.
         onPickTeam: id => {

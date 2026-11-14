@@ -1,23 +1,24 @@
-// Pablete ESPN ☕ — "The Race", editorial version with a time scrubber.
-// One line per team on a real time axis. The chart opens on the latest Pablete; "↺ Replay the
-// season" plays it from the first one. Dragging the chart (or the date rail under it) and the
-// arrow keys move through the season. Desktop also gets a slim hover tooltip.
-// Highlighted teams in their colour with logo + name at the line end; the rest in light grey
-// with a small logo. Headline, subtitle and up to two notes come from js/pablete-story.js.
-// D3 is pinned and loaded as an ES module from jsDelivr; no build step.
+// Pablete ESPN ☕ — "The Race", editorial line chart with a time scrubber.
+// Hierarchy first: two highlighted teams (the headline's protagonists, or the viewer's picks)
+// in thick colour lines with a surface halo, everything else thin grey for context.
+// Opens on the latest Pablete; "↺ Replay the season" plays from the first one. Drag the chart
+// or the date rail, or use the arrow keys. Hover (desktop) or tap (phone) a date for exact
+// values. Rank is a bump chart with logo nodes. D3 is pinned, loaded from jsDelivr.
 
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 import { fmtNum, fmtDate } from "./pablete-data.js";
-import { story } from "./pablete-story.js";
+import { story, leagueAvg } from "./pablete-story.js";
 
 export const METRICS = {
   gap: { label: "Gap to leader", short: "Gap" },
   points: { label: "Total points", short: "Points" },
-  avg: { label: "Average", short: "Average" },
+  avgvl: { label: "Avg vs league", short: "League" },
+  avg: { label: "Average", short: "Avg" },
   rank: { label: "Rank", short: "Rank" },
 };
 
-const GREY = "#CFCFCF";
+const GREY = "#D3D1C7";
+const SURFACE = "#FFFFFF";
 const STEP_MS = 600; // per Pablete while playing
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)");
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -27,8 +28,10 @@ const dayMonth = ms => { const d = new Date(ms); return `${pad2(d.getUTCDate())}
 let active = null; // the chart currently on the page (its timers stop when it is redrawn)
 
 function axisCaption(metric, mode) {
+  const sp = mode === "clean" ? "clean space" : "space";
   if (metric === "gap") return "Points behind the leader";
   if (metric === "points") return "Total points";
+  if (metric === "avgvl") return `Points per ${sp}, minus the league's`;
   if (metric === "avg") return mode === "clean" ? "Points per clean space (without outs)" : "Points per space (spaces include outs)";
   return "Rank by total points";
 }
@@ -36,36 +39,44 @@ function axisCaption(metric, mode) {
 function fmtValue(metric, v) {
   if (v == null) return "";
   if (metric === "gap") return Math.round(v) === 0 ? "Leader" : fmtNum(Math.round(v), 0);
+  if (metric === "avgvl") return Math.abs(v) < 0.005 ? "0.00" : fmtNum(v, 2, { sign: true });
   if (metric === "avg") return fmtNum(v, 2);
   if (metric === "rank") return `#${Math.round(v)}`;
   return fmtNum(Math.round(v), 0);
 }
 
-// teamId -> value per date index (null where the team has no row)
+// teamId -> value per date index (null where the team has no row); plus league average per date
 function valuesFor(cfg, data, metric, mode) {
   const out = new Map(cfg.teams.map(t => [t.id, data.dates.map(() => null)]));
+  const league = data.dates.map(ms => leagueAvg(data.byDate.get(ms), mode));
   data.dates.forEach((ms, i) => {
     const entries = data.byDate.get(ms);
     const lead = Math.max(...entries.map(e => e.points));
     for (const e of entries) {
       const arr = out.get(e.teamId);
       if (!arr) continue;
+      const avg = mode === "clean" ? e.avgClean : e.avg;
       arr[i] = metric === "gap" ? e.points - lead
         : metric === "points" ? e.points
-        : metric === "avg" ? (mode === "clean" ? e.avgClean : e.avg)
+        : metric === "avgvl" ? (avg == null || league[i] == null ? null : avg - league[i])
+        : metric === "avg" ? avg
         : e.rank;
     }
   });
-  return out;
+  return { vals: out, league };
 }
 
-// Push labels apart (sorted by y) so they never overlap; sets .ly on each item.
-function dodge(items, top, bottom, gap) {
+// Push labels of different heights apart (centres sorted by y); sets .ly on each item.
+function dodge(items, top, bottom) {
   items.sort((a, b) => a.y - b.y);
-  items.forEach((d, i) => { d.ly = Math.max(d.y, i ? items[i - 1].ly + gap : top); });
+  items.forEach((d, i) => {
+    const min = i ? items[i - 1].ly + (items[i - 1].h + d.h) / 2 + 1 : top + d.h / 2;
+    d.ly = Math.max(d.y, min);
+  });
   for (let i = items.length - 1; i >= 0; i--) {
-    const max = i === items.length - 1 ? bottom : items[i + 1].ly - gap;
-    if (items[i].ly > max) items[i].ly = max;
+    const d = items[i];
+    const max = i === items.length - 1 ? bottom - d.h / 2 : items[i + 1].ly - (items[i + 1].h + d.h) / 2 - 1;
+    if (d.ly > max) d.ly = max;
   }
   return items;
 }
@@ -77,28 +88,6 @@ function textWidth(text, font) {
   return measureCtx.measureText(text).width;
 }
 
-function wrapWords(text, maxChars) {
-  const lines = [];
-  let cur = "";
-  for (const w of text.split(" ")) {
-    if (cur && (cur + " " + w).length > maxChars) { lines.push(cur); cur = w; } else cur = cur ? `${cur} ${w}` : w;
-  }
-  if (cur) lines.push(cur);
-  return lines;
-}
-
-// Do two segments [x1,y1,x2,y2] cross? (proper intersection only)
-function crosses(p, q) {
-  const o = (ax, ay, bx, by, cx, cy) => Math.sign((bx - ax) * (cy - ay) - (by - ay) * (cx - ax));
-  return o(p[0], p[1], p[2], p[3], q[0], q[1]) * o(p[0], p[1], p[2], p[3], q[2], q[3]) < 0
-    && o(q[0], q[1], q[2], q[3], p[0], p[1]) * o(q[0], q[1], q[2], q[3], p[2], p[3]) < 0;
-}
-function segHitsBox(s, b) {
-  const edges = [[b.x, b.y, b.x + b.w, b.y], [b.x + b.w, b.y, b.x + b.w, b.y + b.h], [b.x, b.y + b.h, b.x + b.w, b.y + b.h], [b.x, b.y, b.x, b.y + b.h]];
-  return edges.some(e => crosses(s, e));
-}
-const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-
 const h = (tag, cls, text) => {
   const n = document.createElement(tag);
   if (cls) n.className = cls;
@@ -108,12 +97,14 @@ const h = (tag, cls, text) => {
 
 /**
  * Render The Race into `host`.
- * ctx: { cfg, data, state: { mode, metric, selected:Set, focus, racePos, racePlaying }, onPickTeam(id) }
+ * ctx: { cfg, data, state: { mode, metric, selected:Set, focus, zoom, racePos, racePlaying },
+ *        onPickTeam(id), onZoom(on) }
  */
 export function renderRace(host, ctx) {
   active?.stop();
   const { cfg, data, state } = ctx;
   const { metric, mode } = state;
+  const isRank = metric === "rank";
   const dates = data.dates;
   const last = dates.length - 1;
   const W = Math.max(280, Math.floor(host.clientWidth));
@@ -121,33 +112,40 @@ export function renderRace(host, ctx) {
   const plotH = phone ? 300 : 360;
   const railTop = plotH + 14;
   const H = plotH + 52;
-  const m = { top: 14, right: phone ? 80 : 196, left: phone ? 34 : 50 };
+  const m = { top: 12, right: phone ? 86 : 200, left: phone ? 38 : 50 };
   const plotBottom = plotH - 6;
-  const vals = valuesFor(cfg, data, metric, mode);
+  const { vals, league } = valuesFor(cfg, data, metric, mode);
   const teams = cfg.teams.filter(t => vals.get(t.id).some(v => v != null));
-  const font = { label: `600 ${phone ? 12 : 13}px Barlow, system-ui, sans-serif`, note: "500 12px Barlow, system-ui, sans-serif" };
+  const F = {
+    name: `600 ${phone ? 12 : 13}px Barlow, system-ui, sans-serif`,
+    grey: `500 ${phone ? 10.5 : 11}px Barlow, system-ui, sans-serif`,
+    badge: "700 11.5px Barlow, system-ui, sans-serif",
+  };
+  const W_HL = isRank ? 10 : 5, W_GREY = isRank ? 4 : 2, W_HALO = isRank ? 16 : 10;
 
   let pos = clamp(Number.isFinite(state.racePos) ? state.racePos : last, 0, last);
 
-  // ----- scales (fixed for the whole season, so lines grow into a stable frame) -----
+  // ----- x: real time; y: tight to the data (8% padding), or zoomed to the highlighted teams -----
   const d0 = dates[0], dN = dates[last];
   const padMs = d0 === dN ? 86400000 : 0;
   const x = d3.scaleUtc().domain([d0 - padMs, dN + padMs]).range([m.left + 12, W - m.right]);
-  let y, yTicks;
-  if (metric === "rank") {
-    const n = Math.max(teams.length, d3.max([...vals.values()].flat().filter(v => v != null)) || 1);
-    y = d3.scaleLinear().domain([1, n]).range([m.top + 10, plotBottom - 10]);
-    yTicks = d3.range(1, n + 1);
-  } else {
-    const all = [...vals.values()].flat().filter(v => v != null);
-    let [lo, hi] = d3.extent(all);
-    if (metric === "gap") hi = 0;
-    if (lo === hi) { lo -= 1; hi += 1; }
-    y = d3.scaleLinear().domain([lo, hi]).nice(4).range([plotBottom, m.top]);
-    yTicks = y.ticks(4);
+  const y = d3.scaleLinear();
+  const nRanks = Math.max(teams.length, 1);
+  function domainFor(ids) {
+    const vs = ids.flatMap(id => vals.get(id) ?? []).filter(v => v != null);
+    if (!vs.length) return [0, 1];
+    let lo = Math.min(...vs), hi = Math.max(...vs);
+    if (metric === "avgvl") { lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+    if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
+    const pad = (hi - lo) * 0.08;
+    return [lo - pad, hi + pad];
   }
-  const step = yTicks.length > 1 ? Math.abs(yTicks[1] - yTicks[0]) : 1;
-  const fmtY = v => (metric === "rank" ? String(v) : fmtNum(v, step < 1 ? 1 : 0));
+  const fullDomain = isRank ? [1, nRanks] : domainFor(teams.map(t => t.id));
+  let dom = fullDomain;
+  const setY = () => (isRank
+    ? y.domain([1, nRanks]).range([m.top + 14, plotBottom - 14])
+    : y.domain(dom).range([plotBottom, m.top]));
+  setY();
 
   const timeAt = p => {
     const i = Math.floor(p + 1e-9);
@@ -165,10 +163,10 @@ export function renderRace(host, ctx) {
   function pathPoints(arr, p) {
     const i0 = Math.floor(p + 1e-9), f = p - i0;
     const pts = [];
-    for (let i = 0; i <= Math.min(i0, last); i++) if (arr[i] != null) pts.push({ x: x(dates[i]), y: y(arr[i]), v: arr[i], real: true });
+    for (let i = 0; i <= Math.min(i0, last); i++) if (arr[i] != null) pts.push({ x: x(dates[i]), y: y(arr[i]), v: arr[i], i, real: true });
     if (f > 1e-6 && i0 < last && arr[i0] != null && arr[i0 + 1] != null) {
       const v = arr[i0] + (arr[i0 + 1] - arr[i0]) * f;
-      pts.push({ x: x(timeAt(p)), y: y(v), v, real: false });
+      pts.push({ x: x(timeAt(p)), y: y(v), v, i: null, real: false });
     }
     return pts;
   }
@@ -177,29 +175,35 @@ export function renderRace(host, ctx) {
   const headline = h("h3", "race-headline");
   const dek = h("p", "race-dek");
   const caption = h("p", "race-caption", axisCaption(metric, mode));
+  const zoomBtn = h("button", "race-zoom", "Zoom to selection");
+  zoomBtn.type = "button";
+  zoomBtn.setAttribute("aria-pressed", String(!!state.zoom));
+  zoomBtn.title = "Fit the vertical scale to the highlighted teams";
+  zoomBtn.hidden = isRank;
+  const capRow = h("div", "race-caprow");
+  capRow.append(caption, zoomBtn);
   const live = h("p", "visually-hidden");
   live.setAttribute("aria-live", "polite");
 
   const svg = d3.create("svg")
-    .attr("class", "race-svg")
+    .attr("class", `race-svg${isRank ? " is-rank" : ""}`)
     .attr("viewBox", `0 0 ${W} ${H}`)
     .attr("width", W).attr("height", H)
     .attr("role", "group")
     .attr("aria-label", `The Race: ${METRICS[metric].label.toLowerCase()} by Pablete date, ${fmtDate(d0)} to ${fmtDate(dN)}. Drag horizontally or use the date slider to move through the season.`);
 
-  svg.append("g").attr("class", "race-grid")
-    .selectAll("line").data(yTicks).join("line")
-    .attr("x1", m.left).attr("x2", W - m.right + (phone ? 0 : 8)).attr("y1", d => y(d)).attr("y2", d => y(d));
-  svg.append("g").attr("class", "race-axis")
-    .selectAll("text").data(yTicks).join("text")
-    .attr("x", m.left - 8).attr("y", d => y(d)).attr("dy", "0.32em").attr("text-anchor", "end")
-    .text(fmtY);
-
+  const gTint = svg.append("g").attr("class", "race-tint");
+  const gGrid = svg.append("g").attr("class", "race-grid");
+  const gAxis = svg.append("g").attr("class", "race-axis");
+  const gZero = svg.append("g").attr("class", "race-zero");
+  const cross = svg.append("line").attr("class", "race-cross").attr("y1", m.top).attr("y2", plotBottom).style("display", "none");
   const gGrey = svg.append("g").attr("class", "race-greys");
+  const gGreyLabels = svg.append("g").attr("class", "race-glabels");
   const gHl = svg.append("g").attr("class", "race-hls");
-  const gHeads = svg.append("g").attr("class", "race-heads");
-  const gNotes = svg.append("g").attr("class", "race-notes").attr("aria-hidden", "true");
+  const gZeroLabel = svg.append("g").attr("class", "race-zero");
+  const gNodes = svg.append("g").attr("class", "race-nodes");
   const gLabels = svg.append("g").attr("class", "race-labels");
+  const gBadges = svg.append("g").attr("class", "race-badges").attr("aria-hidden", "true");
 
   // ----- date rail: thin track, a tick per Pablete, handle -----
   const gRail = svg.append("g").attr("class", "race-rail")
@@ -207,7 +211,7 @@ export function renderRace(host, ctx) {
     .attr("role", "slider")
     .attr("aria-label", "Pablete date")
     .attr("aria-valuemin", 1).attr("aria-valuemax", dates.length);
-  gRail.append("rect").attr("class", "race-rail-hit").attr("x", x(d0) - 14).attr("y", railTop - 14)
+  gRail.append("rect").attr("x", x(d0) - 14).attr("y", railTop - 14)
     .attr("width", x(dN) - x(d0) + 28).attr("height", 44).attr("fill", "transparent");
   gRail.append("line").attr("class", "race-track").attr("x1", x(d0)).attr("x2", x(dN)).attr("y1", railTop).attr("y2", railTop);
   const progress = gRail.append("line").attr("class", "race-progress").attr("x1", x(d0)).attr("y1", railTop).attr("y2", railTop);
@@ -225,17 +229,18 @@ export function renderRace(host, ctx) {
   const tip = h("div", "race-tip");
   tip.hidden = true;
   wrap.append(svg.node(), tip);
-  const cross = svg.insert("line", ".race-greys").attr("class", "race-cross").attr("y1", m.top).attr("y2", plotBottom).style("display", "none");
 
   const playBtn = h("button", "race-play");
   playBtn.type = "button";
   const status = h("span", "race-status");
-  const hint = h("span", "race-hint", phone ? "Drag the chart to move through the season" : "Drag the chart, or use the slider and arrow keys · hover for values");
+  const hint = h("span", "race-hint", phone
+    ? "Drag the chart to move through the season · tap a date for values"
+    : "Drag the chart, or use the slider and arrow keys · hover for values");
   const controls = h("div", "race-controls-row");
   controls.append(playBtn, status, hint);
   if (dates.length < 2) playBtn.disabled = true;
 
-  host.replaceChildren(headline, dek, caption, wrap, controls, live);
+  host.replaceChildren(headline, dek, capRow, wrap, controls, live);
 
   // Reserve the height of the longest headline and subtitle, so the chart never jumps while
   // the words change during playback.
@@ -248,14 +253,67 @@ export function renderRace(host, ctx) {
   headline.style.minHeight = `${maxH}px`;
   dek.style.minHeight = `${maxD}px`;
 
-  // ----- drawing -----
-  let shownK = -1, st = null, hlSet = new Set(), hitBoxes = [];
+  // ----- axes (redrawn when the y domain changes) -----
+  function drawAxes() {
+    setY();
+    if (isRank) {
+      gGrid.selectAll("*").remove();
+      gAxis.selectAll("text").data(d3.range(1, nRanks + 1)).join("text")
+        .attr("x", m.left - 10).attr("y", d => y(d)).attr("dy", "0.32em").attr("text-anchor", "end").text(d => d);
+      return;
+    }
+    let ticks = d3.ticks(dom[0], dom[1], metric === "avgvl" ? 4 : 3);
+    if (ticks.length > 4) ticks = d3.ticks(dom[0], dom[1], 2);
+    if (metric === "avgvl") ticks = ticks.filter(t => Math.abs(t) > 1e-9);
+    const stepT = ticks.length > 1 ? Math.abs(ticks[1] - ticks[0]) : 1;
+    const dec = stepT < 0.1 ? 2 : stepT < 1 ? 1 : 0;
+    gGrid.selectAll("line").data(ticks).join("line")
+      .attr("x1", m.left).attr("x2", W - m.right + (phone ? 0 : 10)).attr("y1", d => y(d)).attr("y2", d => y(d));
+    gAxis.selectAll("text").data(ticks).join("text")
+      .attr("x", m.left - 8).attr("y", d => y(d)).attr("dy", "0.32em").attr("text-anchor", "end")
+      .text(d => fmtNum(d, dec, { sign: metric === "avgvl" }));
+    if (metric === "avgvl") {
+      const y0 = y(0), yt = y(dom[1]), yb = y(dom[0]);
+      gTint.selectAll("rect").data([["above", yt, y0], ["below", y0, yb]]).join("rect")
+        .attr("class", d => `tint-${d[0]}`).attr("x", m.left).attr("width", W - m.right - m.left + (phone ? 0 : 10))
+        .attr("y", d => d[1]).attr("height", d => Math.max(0, d[2] - d[1]));
+      gTint.selectAll("text").data([["above", "Above the league", yt + 14], ["below", "Below the league", yb - 6]]).join("text")
+        .attr("class", d => `tint-label tint-label-${d[0]}`).attr("x", m.left + 6).attr("y", d => d[2]).text(d => d[1]);
+      gZero.selectAll("line").data([0]).join("line").attr("x1", m.left).attr("x2", W - m.right + (phone ? 0 : 10)).attr("y1", y0).attr("y2", y0);
+      if (shownK >= 0) drawZeroLabel(shownK);
+    }
+  }
+  function drawZeroLabel(k) {
+    if (metric !== "avgvl") return;
+    const lg = league[k];
+    gZeroLabel.selectAll("text").data([0]).join("text").attr("x", m.left + 6).attr("y", y(0) - 5)
+      .text(lg == null ? "League average" : `League average (${fmtNum(lg, 1)})`);
+  }
+
+  // ----- highlight + scale targets -----
+  let shownK = -1, st = null, hlSet = new Set(), hitBoxes = [], inspectK = null;
 
   function highlighted() {
     if (state.selected.size) return new Set(state.selected);
     const s = new Set(st.spotlight);
     if (state.focus) s.add(state.focus);
     return s;
+  }
+  const targetDomain = () => (isRank ? fullDomain : state.zoom && hlSet.size && hlSet.size < teams.length ? domainFor([...hlSet]) : fullDomain);
+
+  let domTimer = null;
+  function retarget(instant) {
+    const to = targetDomain();
+    if (Math.abs(to[0] - dom[0]) < 1e-9 && Math.abs(to[1] - dom[1]) < 1e-9) return;
+    domTimer?.stop();
+    if (instant || REDUCED.matches) { dom = to; drawAxes(); return; }
+    const from = dom.slice(), ip = d3.interpolate(from, to);
+    domTimer = d3.timer(el => {
+      const t = Math.min(1, el / 450);
+      dom = ip(d3.easeCubicInOut(t));
+      drawAxes(); draw(true);
+      if (t >= 1) { domTimer.stop(); domTimer = null; }
+    });
   }
 
   function updateWords(k) {
@@ -266,13 +324,17 @@ export function renderRace(host, ctx) {
     status.textContent = `Pablete ${k + 1} of ${dates.length} · ${fmtDate(dates[k])}`;
     gRail.attr("aria-valuenow", k + 1).attr("aria-valuetext", `Pablete ${k + 1} of ${dates.length}, ${fmtDate(dates[k])}`);
     railText.classed("on", d => d === dates[k]);
+    drawZeroLabel(k);
   }
 
-  const line = d3.line().x(p => p.x).y(p => p.y);
+  const line = d3.line().x(p => p.x).y(p => p.y).curve(isRank ? d3.curveMonotoneX : d3.curveLinear);
 
-  function draw() {
+  function draw(fromDomainTween) {
     const k = Math.round(pos);
-    if (k !== shownK) { shownK = k; updateWords(k); }
+    if (k !== shownK) {
+      shownK = k; updateWords(k);
+      if (!fromDomainTween) retarget(false);
+    }
     const items = teams.map(t => {
       const pts = pathPoints(vals.get(t.id), pos);
       return { t, pts, head: pts.at(-1), on: hlSet.has(t.id) };
@@ -280,110 +342,140 @@ export function renderRace(host, ctx) {
     const greys = items.filter(d => !d.on), hls = items.filter(d => d.on);
     const lineD = d => (d.pts.length > 1 ? line(d.pts) : `M${d.head.x},${d.head.y}h0`);
 
+    // context: thin grey lines
     gGrey.selectAll("path").data(greys, d => d.t.id).join("path")
-      .attr("class", "race-line").attr("stroke", GREY).attr("stroke-width", 1.5).attr("d", lineD);
+      .attr("class", "race-line").attr("stroke", GREY).attr("stroke-width", W_GREY).attr("d", lineD);
+    // highlighted: surface halo underneath, then the thick team-colour line (drawn last)
     const hlG = gHl.selectAll("g").data(hls, d => d.t.id).join(enter => {
       const g = enter.append("g");
-      g.append("path").attr("class", "race-line").attr("stroke-width", 2.25);
+      g.append("path").attr("class", "race-line race-halo").attr("stroke", SURFACE).attr("stroke-width", W_HALO);
+      g.append("path").attr("class", "race-line race-hl").attr("stroke-width", W_HL);
       return g;
     });
-    hlG.select("path").attr("stroke", d => d.t.color).attr("d", lineD);
-    hlG.selectAll("circle").data(d => d.pts.filter(p => p.real && p !== d.head).map(p => ({ p, c: d.t.color })))
-      .join("circle").attr("r", 3).attr("cx", o => o.p.x).attr("cy", o => o.p.y).attr("fill", o => o.c);
+    hlG.select(".race-halo").attr("d", lineD);
+    hlG.select(".race-hl").attr("stroke", d => d.t.color).attr("d", lineD);
 
-    hitBoxes = [];
-    // grey heads: small logo, no name
-    const r = phone ? 7 : 8;
-    gHeads.selectAll("g.race-ghead").data(greys, d => d.t.id).join(enter => {
-      const g = enter.append("g").attr("class", "race-ghead");
-      g.append("circle").attr("r", r).attr("fill", "#fff").attr("stroke", GREY).attr("stroke-width", 1);
-      g.append("image").attr("class", "race-glogo").attr("x", -r + 2).attr("y", -r + 2).attr("width", 2 * r - 4).attr("height", 2 * r - 4)
-        .attr("preserveAspectRatio", "xMidYMid meet");
-      g.append("title");
+    // nodes: rank → a logo at every Pablete (and the moving head); other metrics → end dot only
+    const R = 11.5;
+    // logo nodes never overlap along a ribbon: skip a node closer than 24px to the next kept one
+    const spaced = d => {
+      const ps = d.pts.filter(p => p.real || p === d.head), keep = [];
+      for (let j = ps.length - 1; j >= 0; j--) if (!keep.length || keep.at(-1).x - ps[j].x >= 24) keep.push(ps[j]);
+      return keep;
+    };
+    const nodeData = isRank
+      ? hls.flatMap(d => spaced(d).map(p => ({ id: `${d.t.id}-${p.i ?? "h"}`, t: d.t, p })))
+      : hls.map(d => ({ id: d.t.id, t: d.t, p: d.head }));
+    gNodes.selectAll("g.race-node").data(nodeData, n => n.id).join(enter => {
+      const g = enter.append("g").attr("class", "race-node");
+      if (isRank) {
+        g.append("circle").attr("r", R).attr("fill", SURFACE).attr("stroke-width", 2.5);
+        g.append("image").attr("x", -9).attr("y", -9).attr("width", 18).attr("height", 18).attr("preserveAspectRatio", "xMidYMid meet");
+      } else {
+        g.append("circle").attr("r", 4).attr("stroke", SURFACE).attr("stroke-width", 2);
+      }
       return g;
     })
-      .attr("transform", d => `translate(${d.head.x},${d.head.y})`)
-      .call(g => g.select("image").attr("href", d => d.t.logo))
-      .call(g => g.select("title").text(d => `${d.t.name} — tap to highlight`));
-    for (const d of greys) hitBoxes.push({ id: d.t.id, x: d.head.x - r - 3, y: d.head.y - r - 3, w: 2 * r + 6, h: 2 * r + 6 });
-    // highlighted heads: a dot on the line
-    gHeads.selectAll("circle.race-hhead").data(hls, d => d.t.id).join("circle").attr("class", "race-hhead")
-      .attr("r", 4.5).attr("cx", d => d.head.x).attr("cy", d => d.head.y).attr("fill", d => d.t.color);
+      .attr("transform", n => `translate(${n.p.x},${n.p.y})`)
+      .call(g => g.select("circle").attr(isRank ? "stroke" : "fill", n => n.t.color))
+      .call(g => g.select("image").attr("href", n => n.t.logo));
 
-    // highlighted labels: logo in a team-colour ring + name (initials on phones), dodged apart
-    const labels = hls.map(d => ({ d, y: d.head.y }));
-    dodge(labels, m.top + 11, plotBottom - 11, phone ? 25 : 31);
-    const lg = gLabels.selectAll("g.race-label").data(labels, l => l.d.t.id).join(enter => {
+    // end labels: highlighted = (logo +) name + value; grey = small grey name. Dodged together.
+    hitBoxes = [];
+    const hlH = phone ? 26 : 30, gH = 13;
+    const labels = [
+      ...hls.map(d => ({ d, on: true, y: d.head.y, h: hlH })),
+      ...greys.map(d => ({ d, on: false, y: d.head.y, h: gH })),
+    ];
+    dodge(labels, m.top, plotBottom);
+
+    const hlL = gLabels.selectAll("g.race-label").data(labels.filter(l => l.on), l => l.d.t.id).join(enter => {
       const g = enter.append("g").attr("class", "race-label");
       g.append("path").attr("class", "race-leader");
-      g.append("circle").attr("r", 11).attr("fill", "#fff").attr("stroke-width", 2);
-      g.append("image").attr("width", 16).attr("height", 16).attr("preserveAspectRatio", "xMidYMid meet");
+      if (!isRank) {
+        g.append("circle").attr("r", 10).attr("fill", SURFACE).attr("stroke-width", 2);
+        g.append("image").attr("width", 15).attr("height", 15).attr("preserveAspectRatio", "xMidYMid meet");
+      }
       g.append("text").attr("class", "race-name");
       g.append("text").attr("class", "race-val");
       g.append("title");
       return g;
     });
-    lg.each(function (l) {
+    hlL.each(function (l) {
       const g = d3.select(this), t = l.d.t, hx = l.d.head.x, hy = l.d.head.y;
-      const lx = hx + 22;
-      g.select("path").attr("d", Math.abs(l.ly - hy) < 1 ? `M${hx + 6},${hy}H${lx - 11}` : `M${hx + 6},${hy}L${lx - 11},${l.ly}`);
-      g.select("circle").attr("cx", lx).attr("cy", l.ly).attr("stroke", t.color);
-      g.select("image").attr("href", t.logo).attr("x", lx - 8).attr("y", l.ly - 8);
+      const lx = isRank ? hx + R + 6 : hx + 20;        // logo centre (non-rank) or text start (rank)
+      const tx = isRank ? lx : lx + 14;
+      const startX = isRank ? hx + R : hx + 6;
+      const endX = isRank ? lx - 2 : lx - 10;
+      g.select("path").attr("d", Math.abs(l.ly - hy) < 1.5 ? `M${startX},${hy}H${endX}` : `M${startX},${hy}L${endX},${l.ly}`)
+        .style("display", isRank && Math.abs(l.ly - hy) < 1.5 ? "none" : null);
+      if (!isRank) {
+        g.select("circle").attr("cx", lx).attr("cy", l.ly).attr("stroke", t.color);
+        g.select("image").attr("href", t.logo).attr("x", lx - 7.5).attr("y", l.ly - 7.5);
+      }
       const name = phone ? t.initials : t.name;
-      g.select(".race-name").attr("x", lx + 15).attr("y", l.ly).attr("dy", phone ? "0.34em" : "-0.12em").text(name);
-      g.select(".race-val").attr("x", lx + 15).attr("y", l.ly).attr("dy", "1.05em")
-        .text(phone ? "" : fmtValue(metric, l.d.head.v));
+      g.select(".race-name").attr("x", tx).attr("y", l.ly).attr("dy", "-0.15em").text(name);
+      g.select(".race-val").attr("x", tx).attr("y", l.ly).attr("dy", "1.0em").text(fmtValue(metric, l.d.head.v));
       g.select("title").text(t.name);
-      const w = 26 + textWidth(name, font.label) + 4;
-      hitBoxes.push({ id: t.id, x: lx - 13, y: l.ly - 13, w: w + 2, h: 26, label: true });
+      const w = Math.max(textWidth(name, F.name), textWidth(fmtValue(metric, l.d.head.v), F.name)) + (tx - lx) + 14;
+      hitBoxes.push({ id: t.id, x: lx - 12, y: l.ly - hlH / 2, w, h: hlH });
     });
 
+    const gl = gGreyLabels.selectAll("g").data(labels.filter(l => !l.on), l => l.d.t.id).join(enter => {
+      const g = enter.append("g");
+      g.append("path").attr("class", "race-gleader");
+      g.append("text").attr("class", "race-gname");
+      g.append("title");
+      return g;
+    });
+    gl.each(function (l) {
+      const g = d3.select(this), t = l.d.t, hx = l.d.head.x, hy = l.d.head.y;
+      const tx = hx + (isRank ? 9 : 7);
+      g.select("path").attr("d", Math.abs(l.ly - hy) < 1.5 ? null : `M${hx + 3},${hy}L${tx - 2},${l.ly}`);
+      const name = phone ? t.initials : t.name;
+      g.select("text").attr("x", tx).attr("y", l.ly).attr("dy", "0.34em").text(name);
+      g.select("title").text(`${t.name} — tap to highlight`);
+      hitBoxes.push({ id: t.id, x: hx - 4, y: l.ly - 8, w: textWidth(name, F.grey) + (tx - hx) + 8, h: 16 });
+    });
+
+    drawBadges(hls);
     const hx = x(timeAt(pos));
     progress.attr("x2", hx);
     handle.attr("cx", hx);
   }
 
-  // ----- notes: thin leader line + short text, placed where they collide with nothing -----
-  function drawNotes() {
-    gNotes.selectAll("*").remove();
-    if (!st) return;
-    const k = Math.round(pos);
-    const placed = [];
-    const blockers = hitBoxes.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h }));
-    const segs = [];
-    const anchored = st.notes.slice(0, 2)
-      .map(note => ({ note, v: vals.get(note.teamId)?.[k] }))
-      .filter(o => o.v != null)
-      .map(o => ({ ...o, ax: x(dates[k]), ay: y(o.v) }))
-      .sort((a, b) => a.ay - b.ay); // the higher anchor places first and prefers going up
-    anchored.forEach(({ note, ax, ay }, idx) => {
-      const lower = anchored.length > 1 && idx === anchored.length - 1;
-      const lines = wrapWords(note.text, phone ? 20 : 28);
-      const w = Math.max(...lines.map(s => textWidth(s, font.note))) + 4;
-      const lh = 14, bh = lines.length * lh;
-      const up = [[ax - w - 16, ay - bh - 18], [ax - w / 2, ay - bh - 30], [ax - w - 16, ay - bh - 48]];
-      const down = [[ax - w - 16, ay + 18], [ax - w / 2, ay + 30], [ax - w - 16, ay + 48]];
-      const cands = [...(lower ? down : up), [ax - w - 20, ay - bh / 2], ...(lower ? up : down), [ax + 14, ay + 30], [ax + 14, ay - bh - 30]];
-      // fallback: scan up and down the left of the point, nearest first
-      for (let dy = 60; dy <= plotH; dy += 14) cands.push([ax - w - 16, ay - bh - dy], [ax - w - 16, ay + dy]);
-      for (const [cx, cy] of cands) {
-        const b = { x: clamp(cx, m.left + 2, W - 4 - w), y: cy, w, h: bh };
-        if (b.y < m.top || b.y + b.h > plotBottom) continue;
-        if ([...blockers, ...placed].some(o => overlaps(b, o))) continue;
-        const ex = clamp(ax, b.x, b.x + b.w), ey = clamp(ay, b.y, b.y + b.h);
-        const seg = [ax, ay, ex, ey];
-        if (segs.some(o => crosses(seg, o)) || placed.some(o => segHitsBox(seg, o))) continue;
-        placed.push(b); segs.push(seg);
-        const len = Math.hypot(ex - ax, ey - ay) || 1;
-        const g = gNotes.append("g").attr("class", "race-note").attr("data-team", note.teamId);
-        g.append("line").attr("x1", ax + (ex - ax) * (6 / len)).attr("y1", ay + (ey - ay) * (6 / len)).attr("x2", ex).attr("y2", ey);
-        const text = g.append("text").attr("y", b.y);
-        lines.forEach((s, j) => text.append("tspan").attr("x", b.x + 2).attr("dy", j ? lh : "0.85em").text(s));
-        return;
-      }
+  // ----- exact values: badges on the highlighted points of the inspected date (≤ 3 teams) -----
+  function drawBadges(hls) {
+    const k = inspectK;
+    if (k == null || k > Math.floor(pos + 1e-6) || hls.length > 3) {
+      gBadges.selectAll("*").remove();
+      if (tip.hidden) cross.style("display", "none");
+      return;
+    }
+    const bx = x(dates[k]);
+    cross.style("display", null).attr("x1", bx).attr("x2", bx);
+    const items = hls.map(d => ({ t: d.t, v: vals.get(d.t.id)[k] })).filter(o => o.v != null)
+      .map(o => ({ ...o, y: y(o.v), h: 20, text: fmtValue(metric, o.v) }));
+    dodge(items, m.top, plotBottom);
+    const off = isRank ? 16 : 9;
+    const g = gBadges.selectAll("g").data(items, o => o.t.id).join(enter => {
+      const e = enter.append("g").attr("class", "race-badge");
+      e.append("rect").attr("rx", 9).attr("height", 18);
+      e.append("text").attr("dy", "0.34em");
+      return e;
     });
-    gNotes.classed("show", false);
-    requestAnimationFrame(() => gNotes.classed("show", true));
+    g.each(function (o) {
+      const w = textWidth(o.text, F.badge) + 12;
+      const right = bx + off + w <= W - 4;
+      const left = right ? bx + off : bx - off - w;
+      const s = d3.select(this);
+      s.select("rect").attr("x", left).attr("y", o.ly - 9).attr("width", w).attr("stroke", o.t.color);
+      s.select("text").attr("x", left + w / 2).attr("y", o.ly).text(o.text);
+    });
+  }
+  function setInspect(k) {
+    inspectK = k;
+    draw(true);
   }
 
   // ----- movement: scrubbing, snapping, playing -----
@@ -397,12 +489,9 @@ export function renderRace(host, ctx) {
   }
   function settle() {
     updateBtn();
-    if (!playing) {
-      drawNotes();
-      live.textContent = `${fmtDate(dates[Math.round(pos)])}: ${st?.headline ?? ""}`;
-    }
+    if (!playing) live.textContent = `${fmtDate(dates[Math.round(pos)])}: ${st?.headline ?? ""}`;
   }
-  function moving() { gNotes.selectAll("*").remove(); }
+  function moving() { if (inspectK != null) { inspectK = null; hideTip(); } }
 
   function animateTo(target, dur, done) {
     stopAnim();
@@ -410,10 +499,9 @@ export function renderRace(host, ctx) {
     target = clamp(target, 0, last);
     if (REDUCED.matches || dur <= 0 || Math.abs(target - pos) < 1e-6) { setPos(target); settle(); done?.(); return; }
     const from = pos;
-    const ease = d3.easeCubicInOut;
     timer = d3.timer(elapsed => {
       const t = Math.min(1, elapsed / dur);
-      setPos(from + (target - from) * ease(t));
+      setPos(from + (target - from) * d3.easeCubicInOut(t));
       if (t >= 1) { stopAnim(); settle(); done?.(); }
     });
   }
@@ -433,11 +521,8 @@ export function renderRace(host, ctx) {
     if (!playing) return;
     if (pos >= last - 1e-6) { setPlaying(false); settle(); return; }
     const target = Math.floor(pos + 1e-6) + 1;
-    if (REDUCED.matches) {
-      waitT = setTimeout(() => { setPos(target); stepPlay(); }, 900);
-    } else {
-      animateTo(target, STEP_MS * (target - pos), stepPlay);
-    }
+    if (REDUCED.matches) waitT = setTimeout(() => { setPos(target); stepPlay(); }, 900);
+    else animateTo(target, STEP_MS * (target - pos), stepPlay);
   }
   function play() {
     if (last < 1) return;
@@ -461,6 +546,13 @@ export function renderRace(host, ctx) {
     animateTo(k, dur * Math.max(1, Math.abs(k - pos)) ** 0.5);
   }
 
+  zoomBtn.addEventListener("click", () => {
+    state.zoom = !state.zoom;
+    zoomBtn.setAttribute("aria-pressed", String(state.zoom));
+    ctx.onZoom?.(state.zoom);
+    retarget(false);
+  });
+
   gRail.on("keydown", ev => {
     const k = Math.round(pos);
     let to = null;
@@ -473,25 +565,65 @@ export function renderRace(host, ctx) {
     goTo(clamp(to, 0, last));
   });
 
-  // Drag horizontally anywhere on the chart; a short tap picks a team or jumps to a date.
+  // ----- slim desktop tooltip: revealed Pablete nearest the mouse, highlighted teams only -----
+  function hideTip() { tip.hidden = true; if (inspectK == null) cross.style("display", "none"); }
+  function showTip(k) {
+    const rows = teams.filter(t => hlSet.has(t.id) && vals.get(t.id)[k] != null)
+      .map(t => ({ t, v: vals.get(t.id)[k], prev: k > 0 ? vals.get(t.id)[k - 1] : null }))
+      .sort((a, b) => (isRank ? a.v - b.v : b.v - a.v));
+    if (!rows.length) { tip.hidden = true; return; }
+    const head = h("p", "rt-head");
+    head.append(h("strong", null, fmtDate(dates[k])), h("span", "muted", k > 0 ? ` · vs ${dayMonth(dates[k - 1])}` : " · first Pablete"));
+    if (metric === "avgvl" && league[k] != null) head.append(h("span", "muted", ` · league ${fmtNum(league[k], 2)}`));
+    const list = h("ul", "rt-list");
+    for (const r of rows) {
+      const li = h("li");
+      const img = h("img"); img.src = r.t.logo; img.alt = ""; img.width = 16; img.height = 16;
+      const d = r.prev == null ? null : r.v - r.prev;
+      const better = d == null || Math.abs(d) < 1e-9 ? "flat" : (isRank ? d < 0 : d > 0) ? "up" : "down";
+      const chg = d == null ? "—" : Math.abs(d) < 1e-9 ? "=" : isRank ? (d < 0 ? `▲${-d}` : `▼${d}`)
+        : fmtNum(d, metric === "avg" || metric === "avgvl" ? 2 : 0, { sign: true });
+      li.append(img, h("span", "rt-name", r.t.name), h("strong", "rt-val", fmtValue(metric, r.v)), h("span", `rt-chg ${better}`, chg));
+      list.append(li);
+    }
+    tip.replaceChildren(head, list);
+    tip.hidden = false;
+    const tw = tip.offsetWidth, cx = x(dates[k]);
+    // the tooltip sits left of the date line; value badges sit to the right of the points
+    let left = cx - 14 - tw;
+    if (left < 4) left = cx + 14 + 70;
+    tip.style.left = `${clamp(left, 4, W - tw - 4)}px`;
+    tip.style.top = `${m.top}px`;
+  }
+  const revealedNearest = px => {
+    const upto = Math.floor(pos + 1e-6);
+    return d3.minIndex(dates.slice(0, upto + 1), d => Math.abs(x(d) - px));
+  };
+
+  // Drag horizontally anywhere on the chart; a short tap picks a team or inspects a date.
   let drag = null;
   const svgNode = svg.node();
   svg.on("pointerdown", ev => {
     if (ev.button > 0) return;
-    hideTip();
     const [px, py] = d3.pointer(ev, svgNode);
     drag = { id: ev.pointerId, x0: px, y0: py, moved: false, onRail: py > plotH };
     try { svgNode.setPointerCapture(ev.pointerId); } catch { /* not capturable */ }
   });
   svg.on("pointermove", ev => {
-    if (!drag && ev.pointerType === "mouse" && !phone && !playing && !timer) { const [px, py] = d3.pointer(ev, svgNode); if (py <= plotH) showTip(px); else hideTip(); return; }
+    if (!drag && ev.pointerType === "mouse" && !phone && !playing && !timer) {
+      const [px, py] = d3.pointer(ev, svgNode);
+      if (py <= plotH && px >= m.left - 10) {
+        const k = revealedNearest(px);
+        if (k !== inspectK) { setInspect(k); showTip(k); }
+      } else if (inspectK != null) { inspectK = null; hideTip(); draw(true); }
+      return;
+    }
     if (!drag || ev.pointerId !== drag.id) return;
     const [px, py] = d3.pointer(ev, svgNode);
     if (!drag.moved) {
       const dx = Math.abs(px - drag.x0), dy = Math.abs(py - drag.y0);
       if (dx < 6 || dx < dy) return;
       drag.moved = true;
-      hideTip();
       if (playing) setPlaying(false);
       stopAnim();
       moving();
@@ -512,45 +644,19 @@ export function renderRace(host, ctx) {
       if (hit) { ctx.onPickTeam(hit.id); return; }
       const id = nearestLine(px, py);
       if (id) { ctx.onPickTeam(id); return; }
+      const k = nearestIndex(px);
+      if (k <= Math.floor(pos + 1e-6)) {
+        if (ev.pointerType !== "mouse") setInspect(inspectK === k ? null : k);
+        return;
+      }
     }
     goTo(nearestIndex(px));
   };
   svg.on("pointerup", ev => endDrag(ev, false));
-  svg.on("pointerleave", hideTip);
   svg.on("pointercancel", ev => endDrag(ev, true));
-
-  // ----- slim desktop tooltip: revealed Pablete nearest the mouse, highlighted teams only -----
-  function hideTip() { tip.hidden = true; cross.style("display", "none"); gNotes.attr("visibility", null); }
-  function showTip(px) {
-    const upto = Math.round(pos);
-    const k = d3.minIndex(dates.slice(0, upto + 1), d => Math.abs(x(d) - px));
-    if (k < 0) return hideTip();
-    const rows = teams.filter(t => hlSet.has(t.id) && vals.get(t.id)[k] != null)
-      .map(t => ({ t, v: vals.get(t.id)[k], prev: k > 0 ? vals.get(t.id)[k - 1] : null }))
-      .sort((a, b) => (metric === "rank" ? a.v - b.v : b.v - a.v));
-    if (!rows.length) return hideTip();
-    cross.style("display", null).attr("x1", x(dates[k])).attr("x2", x(dates[k]));
-    const head = h("p", "rt-head");
-    head.append(h("strong", null, fmtDate(dates[k])), h("span", "muted", k > 0 ? ` · vs ${dayMonth(dates[k - 1])}` : " · first Pablete"));
-    const list = h("ul", "rt-list");
-    for (const r of rows) {
-      const li = h("li");
-      const img = h("img"); img.src = r.t.logo; img.alt = ""; img.width = 16; img.height = 16;
-      const d = r.prev == null ? null : r.v - r.prev;
-      const better = d == null || d === 0 ? "flat" : (metric === "rank" ? d < 0 : d > 0) ? "up" : "down";
-      const chg = d == null ? "—" : Math.abs(d) < 1e-9 ? "=" : metric === "rank" ? (d < 0 ? `▲${-d}` : d > 0 ? `▼${d}` : "=") : fmtNum(d, metric === "avg" ? 2 : 0, { sign: true });
-      li.append(img, h("span", "rt-name", r.t.name), h("strong", "rt-val", fmtValue(metric, r.v)), h("span", `rt-chg ${better}`, chg));
-      list.append(li);
-    }
-    gNotes.attr("visibility", "hidden");
-    tip.replaceChildren(head, list);
-    tip.hidden = false;
-    const tw = tip.offsetWidth;
-    let left = x(dates[k]) + 14;
-    if (left + tw > W - 4) left = x(dates[k]) - 14 - tw;
-    tip.style.left = `${Math.max(4, left)}px`;
-    tip.style.top = `${m.top}px`;
-  }
+  svg.on("pointerleave", ev => {
+    if (ev.pointerType === "mouse" && inspectK != null) { inspectK = null; hideTip(); draw(true); }
+  });
 
   function nearestLine(px, py) {
     let best = null, bestD = 12;
@@ -570,11 +676,15 @@ export function renderRace(host, ctx) {
   // ----- start -----
   const wasPlaying = state.racePlaying;
   setPlaying(false);
+  st = story(cfg, data, Math.round(pos), metric, mode);
+  hlSet = highlighted();
+  dom = targetDomain();
+  drawAxes();
   draw();
   if (wasPlaying && last > 0 && pos < last - 1e-6) play();
   else if (Math.abs(pos - Math.round(pos)) > 1e-6) animateTo(Math.round(pos), 150);
   else settle();
 
-  active = { stop: () => { stopAnim(); playing = false; } };
+  active = { stop: () => { stopAnim(); domTimer?.stop(); playing = false; } };
   return active;
 }
