@@ -1,5 +1,5 @@
 // Pablete ESPN ☕ — page: visuals first. Team chip bar + With/Without outs toggle drive every
-// chart; "The Race" line chart; the full sortable table at the bottom.
+// chart; "The Race" (editorial line chart with a time scrubber); the full sortable table below.
 // Data comes from js/pablete-data.js; charts load D3 lazily from js/pablete-race.js so the
 // page still works (table included) if the chart library can't be fetched.
 
@@ -8,7 +8,7 @@ import { loadPablete, buildPablete, fmtDate, fmtStamp, fmtNum } from "./pablete-
 
 const root = document.getElementById("pablete");
 const MODE_KEY = "pablete_mode_v1";
-const SEL_KEY = "pablete_sel_v1";
+const SEL_KEY = "pablete_sel_v2"; // v2: empty = no pick (the chart highlights the top 2)
 const METRIC_KEY = "pablete_metric_v1";
 const PHONE = window.matchMedia("(max-width: 640px)");
 const METRIC_LABELS = { gap: ["Gap to leader", "Gap"], points: ["Total points", "Points"], avg: ["Average", "Average"], rank: ["Rank", "Rank"] };
@@ -24,7 +24,7 @@ function readSelection(cfg) {
     const raw = JSON.parse(readPref(SEL_KEY));
     if (Array.isArray(raw)) return new Set(raw.filter(id => ids.has(id)));
   } catch { /* fall through */ }
-  return new Set(ids);
+  return new Set();
 }
 
 // ---------- states ----------
@@ -164,6 +164,7 @@ function segmented(label, options, current, onPick, cls = "") {
 
 function chipBar(cfg, state, update) {
   const all = cfg.teams.length;
+  const none = state.selected.size === 0;
   const chips = [...cfg.teams].sort((a, b) => a.draft_slot - b.draft_slot).map(t => {
     const on = state.selected.has(t.id);
     return el("button", {
@@ -171,6 +172,7 @@ function chipBar(cfg, state, update) {
       style: { "--team": t.color },
       onclick: () => {
         if (on) state.selected.delete(t.id); else state.selected.add(t.id);
+        state.focus = null;
         update();
       },
     },
@@ -178,13 +180,17 @@ function chipBar(cfg, state, update) {
       el("span", { class: "chip-name" }, t.initials),
       el("span", { class: "visually-hidden" }, ` ${t.name}`));
   });
-  return el("div", { class: "chipbar-row" },
+  return el("div", {},
+    el("div", { class: "chipbar-row" },
     el("div", { class: "chipbar-actions" },
       el("button", { type: "button", class: "chip-act", disabled: state.selected.size === all,
         onclick: () => { cfg.teams.forEach(t => state.selected.add(t.id)); update(); } }, "All"),
       el("button", { type: "button", class: "chip-act", disabled: state.selected.size === 0,
-        onclick: () => { state.selected.clear(); update(); } }, "Clear")),
-    el("div", { class: "chipbar", role: "group", "aria-label": "Teams shown" }, chips));
+        onclick: () => { state.selected.clear(); state.focus = null; update(); } }, "Clear")),
+    el("div", { class: `chipbar${none ? " none-picked" : ""}`, role: "group", "aria-label": "Teams to highlight" }, chips)),
+    el("p", { class: "chip-hint" }, none
+      ? "No team picked: the chart colours the top 2 and any team you tap."
+      : `${state.selected.size} team${state.selected.size > 1 ? "s" : ""} picked. Tap a chip, line or logo to add or remove one.`));
 }
 
 // ---------- page ----------
@@ -202,7 +208,9 @@ function render(cfg, result) {
     mode: readPref(MODE_KEY) === "clean" ? "clean" : "all",
     metric: METRIC_LABELS[readPref(METRIC_KEY)] ? readPref(METRIC_KEY) : "gap",
     selected: readSelection(cfg),
-    raceMs: null,
+    focus: null, // team tapped on the chart while nothing is picked (not saved)
+    racePos: 0, // scrubber position: index into the Pablete dates (fractional while moving)
+    racePlaying: false,
     sortKey: "points", sortDir: "desc",
   };
 
@@ -220,14 +228,15 @@ function render(cfg, result) {
     try {
       raceModule.renderRace(raceHost, {
         cfg, data, state,
+        // Tap on a line or logo. Nothing picked: highlight that team next to the top 2 (tap
+        // again to drop it). Every team picked: keep only that one. Otherwise add/remove it.
         onPickTeam: id => {
-          const all = state.selected.size === cfg.teams.length;
-          if (all) { state.selected.clear(); state.selected.add(id); }
+          if (state.selected.size === 0) state.focus = state.focus === id ? null : id;
+          else if (state.selected.size === cfg.teams.length) { state.selected.clear(); state.selected.add(id); }
           else if (state.selected.has(id)) state.selected.delete(id);
           else state.selected.add(id);
           update();
         },
-        onDate: ms => { state.raceMs = ms; },
       });
     } catch (e) {
       console.error(e);
@@ -275,7 +284,7 @@ function render(cfg, result) {
     toolbar,
     chipsSlot,
     el("section", { class: "card pb-card", "aria-labelledby": "h-race" },
-      el("div", { class: "pb-card-head" }, el("h2", { id: "h-race" }, "The Race"), raceControls),
+      el("div", { class: "pb-card-head" }, el("h2", { id: "h-race", class: "pb-kicker" }, "The Race"), raceControls),
       raceHost),
     el("section", { class: "pb-section", "aria-labelledby": "h-table" },
       el("h2", { id: "h-table" }, "Full table"),
