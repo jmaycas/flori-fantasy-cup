@@ -1,0 +1,1263 @@
+{
+ "snapshot": "2026-11-14T11:30",
+ "timezone": "Europe/Rome",
+ "source": "ESPN League Rosters page, saved as text",
+ "teams": [
+  {
+   "teamId": "malakito",
+   "roster": [
+    {
+     "slot": "PG",
+     "player": "De'Aaron Fox",
+     "nbaTeam": "SA",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SG",
+     "player": "Immanuel Quickley",
+     "nbaTeam": "TOR",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SF",
+     "player": "Jaylen Brown",
+     "nbaTeam": "PHI",
+     "positions": [
+      "SF",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "PF",
+     "player": "Miles Bridges",
+     "nbaTeam": "PHX",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "C",
+     "player": "Nikola Jokic",
+     "nbaTeam": "DEN",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "G",
+     "player": "VJ Edgecombe",
+     "nbaTeam": "PHI",
+     "positions": [
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "F",
+     "player": "RJ Barrett",
+     "nbaTeam": "TOR",
+     "positions": [
+      "SF",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Alperen Sengun",
+     "nbaTeam": "HOU",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Austin Reaves",
+     "nbaTeam": "LAL",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "DTD",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Dyson Daniels",
+     "nbaTeam": "ATL",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Scottie Barnes",
+     "nbaTeam": "TOR",
+     "positions": [
+      "SF",
+      "SG"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Matas Buzelis",
+     "nbaTeam": "CHI",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "Bench",
+     "player": "Isaiah Hartenstein",
+     "nbaTeam": "OKC",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "IR",
+     "player": "Chet Holmgren",
+     "nbaTeam": "OKC",
+     "positions": [
+      "C",
+      "PF"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    }
+   ]
+  },
+  {
+   "teamId": "panzas",
+   "roster": [
+    {
+     "slot": "PG",
+     "player": "Luka Doncic",
+     "nbaTeam": "LAL",
+     "positions": [
+      "PG"
+     ],
+     "status": "DTD",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SG",
+     "player": "Ayo Dosunmu",
+     "nbaTeam": "MIN",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "SF",
+     "player": "LeBron James",
+     "nbaTeam": "PHI",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "DTD",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "PF",
+     "player": "Pascal Siakam",
+     "nbaTeam": "IND",
+     "positions": [
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "C",
+     "player": "Domantas Sabonis",
+     "nbaTeam": "SAC",
+     "positions": [
+      "C",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "G",
+     "player": "Trae Young",
+     "nbaTeam": "WSH",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "F",
+     "empty": true
+    },
+    {
+     "slot": "UTIL",
+     "player": "Keyonte George",
+     "nbaTeam": "UTAH",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Ty Jerome",
+     "nbaTeam": "MEM",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Jarrett Allen",
+     "nbaTeam": "CLE",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Lauri Markkanen",
+     "nbaTeam": "UTAH",
+     "positions": [
+      "PF",
+      "SF"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Joel Embiid",
+     "nbaTeam": "PHI",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Ja Morant",
+     "nbaTeam": "POR",
+     "positions": [
+      "PG"
+     ],
+     "status": "O",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "Bench",
+     "player": "Jakob Poeltl",
+     "nbaTeam": "TOR",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "IR",
+     "player": "Tyrese Haliburton",
+     "nbaTeam": "IND",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    }
+   ]
+  },
+  {
+   "teamId": "franche",
+   "roster": [
+    {
+     "slot": "PG",
+     "player": "LaMelo Ball",
+     "nbaTeam": "MIN",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SG",
+     "player": "Josh Giddey",
+     "nbaTeam": "CHI",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SF",
+     "player": "Michael Porter Jr.",
+     "nbaTeam": "BKN",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "PF",
+     "player": "Paul George",
+     "nbaTeam": "BOS",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "DTD",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "C",
+     "player": "Victor Wembanyama",
+     "nbaTeam": "SA",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "G",
+     "empty": true
+    },
+    {
+     "slot": "F",
+     "empty": true
+    },
+    {
+     "slot": "UTIL",
+     "player": "Brandin Podziemski",
+     "nbaTeam": "GS",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Onyeka Okongwu",
+     "nbaTeam": "ATL",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "UTIL",
+     "player": "De'Anthony Melton",
+     "nbaTeam": "GS",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "Bench",
+     "player": "Kawhi Leonard",
+     "nbaTeam": "TOR",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Fred VanVleet",
+     "nbaTeam": "HOU",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Jabari Smith Jr.",
+     "nbaTeam": "HOU",
+     "positions": [
+      "PF",
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "Bench",
+     "player": "Darryn Peterson",
+     "nbaTeam": "UTAH",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "Bench",
+     "player": "Nic Claxton",
+     "nbaTeam": "CHI",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "IR",
+     "player": "Stephen Curry",
+     "nbaTeam": "GS",
+     "positions": [
+      "PG"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    }
+   ]
+  },
+  {
+   "teamId": "lotus",
+   "roster": [
+    {
+     "slot": "PG",
+     "player": "Jeremiah Fears",
+     "nbaTeam": "NO",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "SG",
+     "player": "Cedric Coward",
+     "nbaTeam": "MEM",
+     "positions": [
+      "SF",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "SF",
+     "player": "Saddiq Bey",
+     "nbaTeam": "NO",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "PF",
+     "player": "Julius Randle",
+     "nbaTeam": "BKN",
+     "positions": [
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "C",
+     "empty": true
+    },
+    {
+     "slot": "G",
+     "player": "Daniss Jenkins",
+     "nbaTeam": "DET",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "F",
+     "player": "Kyshawn George",
+     "nbaTeam": "WSH",
+     "positions": [
+      "SG",
+      "SF"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Shai Gilgeous-Alexander",
+     "nbaTeam": "OKC",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Jalen Brunson",
+     "nbaTeam": "NY",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "empty": true
+    },
+    {
+     "slot": "Bench",
+     "player": "Evan Mobley",
+     "nbaTeam": "CLE",
+     "positions": [
+      "PF",
+      "C"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Jalen Duren",
+     "nbaTeam": "DET",
+     "positions": [
+      "C"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Desmond Bane",
+     "nbaTeam": "ORL",
+     "positions": [
+      "SG",
+      "SF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Alex Sarr",
+     "nbaTeam": "WSH",
+     "positions": [
+      "C",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Daniel Gafford",
+     "nbaTeam": "DAL",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "IR",
+     "player": "Paolo Banchero",
+     "nbaTeam": "ORL",
+     "positions": [
+      "PF",
+      "SF"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    }
+   ]
+  },
+  {
+   "teamId": "onegang",
+   "roster": [
+    {
+     "slot": "PG",
+     "player": "Stephon Castle",
+     "nbaTeam": "SA",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SG",
+     "player": "Donovan Mitchell",
+     "nbaTeam": "CLE",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SF",
+     "empty": true
+    },
+    {
+     "slot": "PF",
+     "player": "Cameron Boozer",
+     "nbaTeam": "MEM",
+     "positions": [
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "C",
+     "player": "Karl-Anthony Towns",
+     "nbaTeam": "NY",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "G",
+     "player": "Devin Booker",
+     "nbaTeam": "PHX",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "F",
+     "player": "Giannis Antetokounmpo",
+     "nbaTeam": "MIA",
+     "positions": [
+      "PF",
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Andrew Nembhard",
+     "nbaTeam": "IND",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Ace Bailey",
+     "nbaTeam": "UTAH",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "UTIL",
+     "empty": true
+    },
+    {
+     "slot": "Bench",
+     "player": "Trey Murphy III",
+     "nbaTeam": "NO",
+     "positions": [
+      "SF",
+      "SG"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Brandon Miller",
+     "nbaTeam": "CHA",
+     "positions": [
+      "SF",
+      "SG"
+     ],
+     "status": "DTD",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Caleb Wilson",
+     "nbaTeam": "CHI",
+     "positions": [
+      "SF"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Norman Powell",
+     "nbaTeam": "CHI",
+     "positions": [
+      "SG",
+      "SF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Ryan Rollins",
+     "nbaTeam": "MIL",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "IR",
+     "empty": true
+    }
+   ]
+  },
+  {
+   "teamId": "nosmoke",
+   "roster": [
+    {
+     "slot": "PG",
+     "player": "Cade Cunningham",
+     "nbaTeam": "DET",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SG",
+     "player": "Anthony Black",
+     "nbaTeam": "ORL",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "SF",
+     "player": "Cooper Flagg",
+     "nbaTeam": "DAL",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "PF",
+     "player": "Anthony Davis",
+     "nbaTeam": "WSH",
+     "positions": [
+      "C",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "C",
+     "player": "Bam Adebayo",
+     "nbaTeam": "MIA",
+     "positions": [
+      "C",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "G",
+     "player": "Dylan Harper",
+     "nbaTeam": "SA",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "F",
+     "player": "Deni Avdija",
+     "nbaTeam": "POR",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Franz Wagner",
+     "nbaTeam": "ORL",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Yaxel Lendeborg",
+     "nbaTeam": "GS",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Darius Acuff Jr.",
+     "nbaTeam": "SAC",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Dejounte Murray",
+     "nbaTeam": "NO",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "AJ Dybantsa",
+     "nbaTeam": "WSH",
+     "positions": [
+      "SF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Ivica Zubac",
+     "nbaTeam": "IND",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "IR",
+     "player": "Brandon Ingram",
+     "nbaTeam": "LAC",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "O",
+     "acquired": "Free Agency"
+    }
+   ]
+  },
+  {
+   "teamId": "jorge",
+   "roster": [
+    {
+     "slot": "PG",
+     "player": "Nickeil Alexander-Walker",
+     "nbaTeam": "ATL",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SG",
+     "player": "Amen Thompson",
+     "nbaTeam": "HOU",
+     "positions": [
+      "SF",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SF",
+     "player": "Kevin Durant",
+     "nbaTeam": "HOU",
+     "positions": [
+      "PF",
+      "SF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "PF",
+     "player": "Derik Queen",
+     "nbaTeam": "NO",
+     "positions": [
+      "C",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "C",
+     "player": "Donovan Clingan",
+     "nbaTeam": "POR",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "G",
+     "player": "Alex Caruso",
+     "nbaTeam": "OKC",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "F",
+     "player": "Zion Williamson",
+     "nbaTeam": "NO",
+     "positions": [
+      "PF",
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Jalen Johnson",
+     "nbaTeam": "ATL",
+     "positions": [
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Damian Lillard",
+     "nbaTeam": "POR",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Aaron Wiggins",
+     "nbaTeam": "ATL",
+     "positions": [
+      "SG",
+      "SF"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "Bench",
+     "player": "Tyrese Maxey",
+     "nbaTeam": "PHI",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Jared McCain",
+     "nbaTeam": "OKC",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "Bench",
+     "player": "Sandro Mamukelashvili",
+     "nbaTeam": "LAL",
+     "positions": [
+      "C",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "IR",
+     "player": "Ajay Mitchell",
+     "nbaTeam": "OKC",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "O",
+     "acquired": "Free Agency"
+    }
+   ]
+  },
+  {
+   "teamId": "andeme",
+   "roster": [
+    {
+     "slot": "PG",
+     "player": "Jamal Murray",
+     "nbaTeam": "DEN",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SG",
+     "player": "James Harden",
+     "nbaTeam": "CLE",
+     "positions": [
+      "PG",
+      "SG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "SF",
+     "player": "Jaden McDaniels",
+     "nbaTeam": "MIN",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "PF",
+     "player": "Jayson Tatum",
+     "nbaTeam": "BOS",
+     "positions": [
+      "PF",
+      "SF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "C",
+     "player": "Walker Kessler",
+     "nbaTeam": "LAL",
+     "positions": [
+      "C"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "G",
+     "player": "Kyrie Irving",
+     "nbaTeam": "DAL",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "F",
+     "player": "Naz Reid",
+     "nbaTeam": "CHA",
+     "positions": [
+      "C",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Darius Garland",
+     "nbaTeam": "LAC",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Tyler Herro",
+     "nbaTeam": "MIL",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "UTIL",
+     "player": "Davion Mitchell",
+     "nbaTeam": "MIA",
+     "positions": [
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "Bench",
+     "player": "Derrick White",
+     "nbaTeam": "BOS",
+     "positions": [
+      "SG",
+      "PG"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Zach LaVine",
+     "nbaTeam": "SAC",
+     "positions": [
+      "SG",
+      "SF"
+     ],
+     "status": "healthy",
+     "acquired": "Draft"
+    },
+    {
+     "slot": "Bench",
+     "player": "Ausar Thompson",
+     "nbaTeam": "DET",
+     "positions": [
+      "SF",
+      "PF"
+     ],
+     "status": "healthy",
+     "acquired": "Free Agency"
+    },
+    {
+     "slot": "IR",
+     "player": "Anthony Edwards",
+     "nbaTeam": "MIN",
+     "positions": [
+      "SG",
+      "SF"
+     ],
+     "status": "O",
+     "acquired": "Draft"
+    }
+   ]
+  }
+ ]
+}

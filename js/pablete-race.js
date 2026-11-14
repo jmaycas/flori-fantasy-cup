@@ -1,6 +1,7 @@
 // Pablete ESPN ☕ — "The Race", editorial version with a time scrubber.
-// One line per team on a real time axis. The chart opens on the first Pablete; dragging the
-// chart (or the date rail under it), the ▶ Play button or the arrow keys reveal the season.
+// One line per team on a real time axis. The chart opens on the latest Pablete; "↺ Replay the
+// season" plays it from the first one. Dragging the chart (or the date rail under it) and the
+// arrow keys move through the season. Desktop also gets a slim hover tooltip.
 // Highlighted teams in their colour with logo + name at the line end; the rest in light grey
 // with a small logo. Headline, subtitle and up to two notes come from js/pablete-story.js.
 // D3 is pinned and loaded as an ES module from jsDelivr; no build step.
@@ -126,7 +127,7 @@ export function renderRace(host, ctx) {
   const teams = cfg.teams.filter(t => vals.get(t.id).some(v => v != null));
   const font = { label: `600 ${phone ? 12 : 13}px Barlow, system-ui, sans-serif`, note: "500 12px Barlow, system-ui, sans-serif" };
 
-  let pos = clamp(Number.isFinite(state.racePos) ? state.racePos : 0, 0, last);
+  let pos = clamp(Number.isFinite(state.racePos) ? state.racePos : last, 0, last);
 
   // ----- scales (fixed for the whole season, so lines grow into a stable frame) -----
   const d0 = dates[0], dN = dates[last];
@@ -221,12 +222,15 @@ export function renderRace(host, ctx) {
   const handle = gRail.append("circle").attr("class", "race-handle").attr("cy", railTop).attr("r", 8);
 
   const wrap = h("div", "race-wrap");
-  wrap.append(svg.node());
+  const tip = h("div", "race-tip");
+  tip.hidden = true;
+  wrap.append(svg.node(), tip);
+  const cross = svg.insert("line", ".race-greys").attr("class", "race-cross").attr("y1", m.top).attr("y2", plotBottom).style("display", "none");
 
   const playBtn = h("button", "race-play");
   playBtn.type = "button";
   const status = h("span", "race-status");
-  const hint = h("span", "race-hint", phone ? "Drag the chart to move through the season" : "Drag the chart, or use the slider and arrow keys");
+  const hint = h("span", "race-hint", phone ? "Drag the chart to move through the season" : "Drag the chart, or use the slider and arrow keys · hover for values");
   const controls = h("div", "race-controls-row");
   controls.append(playBtn, status, hint);
   if (dates.length < 2) playBtn.disabled = true;
@@ -392,6 +396,7 @@ export function renderRace(host, ctx) {
     draw();
   }
   function settle() {
+    updateBtn();
     if (!playing) {
       drawNotes();
       live.textContent = `${fmtDate(dates[Math.round(pos)])}: ${st?.headline ?? ""}`;
@@ -413,12 +418,16 @@ export function renderRace(host, ctx) {
     });
   }
 
+  function updateBtn() {
+    const atEnd = pos >= last - 1e-6;
+    const label = playing ? "❚❚ Pause" : atEnd ? "↺ Replay the season" : "▶ Play";
+    if (playBtn.textContent !== label) playBtn.textContent = label;
+    playBtn.setAttribute("aria-pressed", String(playing));
+  }
   function setPlaying(on) {
     playing = on;
     state.racePlaying = on;
-    playBtn.setAttribute("aria-pressed", String(on));
-    playBtn.textContent = on ? "❚❚ Pause" : "▶ Play";
-    playBtn.setAttribute("aria-label", on ? "Pause" : "Play the season");
+    updateBtn();
   }
   function stepPlay() {
     if (!playing) return;
@@ -469,17 +478,20 @@ export function renderRace(host, ctx) {
   const svgNode = svg.node();
   svg.on("pointerdown", ev => {
     if (ev.button > 0) return;
+    hideTip();
     const [px, py] = d3.pointer(ev, svgNode);
     drag = { id: ev.pointerId, x0: px, y0: py, moved: false, onRail: py > plotH };
     try { svgNode.setPointerCapture(ev.pointerId); } catch { /* not capturable */ }
   });
   svg.on("pointermove", ev => {
+    if (!drag && ev.pointerType === "mouse" && !phone && !playing && !timer) { const [px, py] = d3.pointer(ev, svgNode); if (py <= plotH) showTip(px); else hideTip(); return; }
     if (!drag || ev.pointerId !== drag.id) return;
     const [px, py] = d3.pointer(ev, svgNode);
     if (!drag.moved) {
       const dx = Math.abs(px - drag.x0), dy = Math.abs(py - drag.y0);
       if (dx < 6 || dx < dy) return;
       drag.moved = true;
+      hideTip();
       if (playing) setPlaying(false);
       stopAnim();
       moving();
@@ -504,7 +516,41 @@ export function renderRace(host, ctx) {
     goTo(nearestIndex(px));
   };
   svg.on("pointerup", ev => endDrag(ev, false));
+  svg.on("pointerleave", hideTip);
   svg.on("pointercancel", ev => endDrag(ev, true));
+
+  // ----- slim desktop tooltip: revealed Pablete nearest the mouse, highlighted teams only -----
+  function hideTip() { tip.hidden = true; cross.style("display", "none"); gNotes.attr("visibility", null); }
+  function showTip(px) {
+    const upto = Math.round(pos);
+    const k = d3.minIndex(dates.slice(0, upto + 1), d => Math.abs(x(d) - px));
+    if (k < 0) return hideTip();
+    const rows = teams.filter(t => hlSet.has(t.id) && vals.get(t.id)[k] != null)
+      .map(t => ({ t, v: vals.get(t.id)[k], prev: k > 0 ? vals.get(t.id)[k - 1] : null }))
+      .sort((a, b) => (metric === "rank" ? a.v - b.v : b.v - a.v));
+    if (!rows.length) return hideTip();
+    cross.style("display", null).attr("x1", x(dates[k])).attr("x2", x(dates[k]));
+    const head = h("p", "rt-head");
+    head.append(h("strong", null, fmtDate(dates[k])), h("span", "muted", k > 0 ? ` · vs ${dayMonth(dates[k - 1])}` : " · first Pablete"));
+    const list = h("ul", "rt-list");
+    for (const r of rows) {
+      const li = h("li");
+      const img = h("img"); img.src = r.t.logo; img.alt = ""; img.width = 16; img.height = 16;
+      const d = r.prev == null ? null : r.v - r.prev;
+      const better = d == null || d === 0 ? "flat" : (metric === "rank" ? d < 0 : d > 0) ? "up" : "down";
+      const chg = d == null ? "—" : Math.abs(d) < 1e-9 ? "=" : metric === "rank" ? (d < 0 ? `▲${-d}` : d > 0 ? `▼${d}` : "=") : fmtNum(d, metric === "avg" ? 2 : 0, { sign: true });
+      li.append(img, h("span", "rt-name", r.t.name), h("strong", "rt-val", fmtValue(metric, r.v)), h("span", `rt-chg ${better}`, chg));
+      list.append(li);
+    }
+    gNotes.attr("visibility", "hidden");
+    tip.replaceChildren(head, list);
+    tip.hidden = false;
+    const tw = tip.offsetWidth;
+    let left = x(dates[k]) + 14;
+    if (left + tw > W - 4) left = x(dates[k]) - 14 - tw;
+    tip.style.left = `${Math.max(4, left)}px`;
+    tip.style.top = `${m.top}px`;
+  }
 
   function nearestLine(px, py) {
     let best = null, bestD = 12;

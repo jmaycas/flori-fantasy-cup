@@ -209,7 +209,7 @@ function render(cfg, result) {
     metric: METRIC_LABELS[readPref(METRIC_KEY)] ? readPref(METRIC_KEY) : "gap",
     selected: readSelection(cfg),
     focus: null, // team tapped on the chart while nothing is picked (not saved)
-    racePos: 0, // scrubber position: index into the Pablete dates (fractional while moving)
+    racePos: null, // scrubber position: index into the Pablete dates (null = latest; fractional while moving)
     racePlaying: false,
     sortKey: "points", sortDir: "desc",
   };
